@@ -79,6 +79,7 @@ public:
 
 	virtual void setNavigationFocus(bool focus) = 0;
 	virtual bool hasNavigationFocus() const = 0;
+	virtual void exportReferences( const std::vector<CodeFileParams>& files ) = 0;
 
 protected:
 	CodeController* getController();

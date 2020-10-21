@@ -38,6 +38,7 @@
 #include "MessageTabSelect.h"
 #include "MessageWindowClosed.h"
 #include "MessageZoom.h"
+#include "MessageExportReferences.h"
 #include "QtAbout.h"
 #include "QtContextMenu.h"
 #include "QtFileDialog.h"
@@ -687,6 +688,11 @@ void QtMainWindow::overview()
 	MessageActivateOverview().dispatch();
 }
 
+void QtMainWindow::exportReferences()
+{
+	MessageExportReferences().dispatch();
+}
+
 void QtMainWindow::closeWindow()
 {
 	QApplication* app = dynamic_cast<QApplication*>(QCoreApplication::instance());
@@ -924,6 +930,8 @@ void QtMainWindow::setupEditMenu()
 		this,
 		&QtMainWindow::openSettings,
 		QKeySequence(Qt::CTRL + Qt::Key_Comma));
+
+	menu->addAction(tr("Export All References"), this, &QtMainWindow::exportReferences);
 }
 
 void QtMainWindow::setupViewMenu()

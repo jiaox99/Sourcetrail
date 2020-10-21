@@ -4,8 +4,11 @@
 #include "ResourcePaths.h"
 #include "tracing.h"
 
+#include "MessageStatus.h"
+#include "SourceLocationFile.h"
 #include "ColorScheme.h"
 #include "QtCodeArea.h"
+#include "QtFileDialog.h"
 #include "QtCodeNavigator.h"
 #include "QtHighlighter.h"
 #include "QtViewWidgetWrapper.h"
@@ -268,4 +271,34 @@ void QtCodeView::setStyleSheet() const
 		ResourcePaths::getGuiPath().concatenate(L"code_view/code_view.css"));
 
 	m_widget->setStyleSheet(styleSheet.c_str());
+}
+
+void QtCodeView::exportReferences( const std::vector<CodeFileParams>& files  )
+{
+	m_onQtThread( [=]() {
+		FilePath filePath(
+			QtFileDialog::showSaveFileDialog(
+				nullptr,
+				QStringLiteral( "Export all references" ),
+				FilePath(),
+				QStringLiteral( "TXT (*.txt)" ) )
+			.toStdWString() );
+		if ( !filePath.isValid() )
+		{
+			return;
+		}
+
+		QFile outfile( QString::fromStdWString( filePath.wstr() ) );
+		if ( !outfile.open( QIODevice::WriteOnly ) )
+		{
+			return;
+		}
+
+		for ( const CodeFileParams& file : files )
+		{
+			outfile.write( file.locationFile->getFilePath().str().c_str() );
+			outfile.write( "\n" );
+		}
+		outfile.close();
+	} );
 }

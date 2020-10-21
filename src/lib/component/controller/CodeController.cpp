@@ -648,6 +648,14 @@ void CodeController::handleMessage(MessageToNextCodeReference* message)
 	}
 }
 
+void CodeController::handleMessage( MessageExportReferences* message )
+{
+	if ( m_files.size() > 0 )
+	{
+		getView()->exportReferences( m_files );
+	}
+}
+
 CodeView* CodeController::getView() const
 {
 	return Controller::getView<CodeView>();

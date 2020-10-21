@@ -52,6 +52,7 @@ public:
 
 	void setNavigationFocus(bool focus) override;
 	bool hasNavigationFocus() const override;
+	void exportReferences( const std::vector<CodeFileParams>& files ) override;
 
 private:
 	void setNavigationState(const CodeParams& params);

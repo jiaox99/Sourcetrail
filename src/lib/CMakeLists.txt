@@ -460,6 +460,7 @@ add_files(
 	utility/messaging/type/code/MessageChangeFileView.h
 	utility/messaging/type/code/MessageCodeReference.h
 	utility/messaging/type/code/MessageCodeShowDefinition.h
+    utility/messaging/type/code/MessageExportReferences.h
 	utility/messaging/type/code/MessageScrollCode.h
 	utility/messaging/type/code/MessageScrollToLine.h
 	utility/messaging/type/code/MessageShowReference.h

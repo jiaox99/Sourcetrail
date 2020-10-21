@@ -30,6 +30,7 @@
 #include "MessageShowReference.h"
 #include "MessageShowScope.h"
 #include "MessageToNextCodeReference.h"
+#include "MessageExportReferences.h"
 #include "types.h"
 
 #include "CodeView.h"
@@ -66,6 +67,7 @@ class CodeController
 	, public MessageListener<MessageShowReference>
 	, public MessageListener<MessageShowScope>
 	, public MessageListener<MessageToNextCodeReference>
+	, public MessageListener<MessageExportReferences>
 {
 public:
 	CodeController(StorageAccess* storageAccess);
@@ -108,6 +110,7 @@ private:
 	void handleMessage(MessageShowReference* message) override;
 	void handleMessage(MessageShowScope* message) override;
 	void handleMessage(MessageToNextCodeReference* message) override;
+	void handleMessage(MessageExportReferences* message ) override;
 
 	CodeView* getView() const;
 
