@@ -58,7 +58,8 @@ bool ApplicationSettings::load(const FilePath& filePath, bool readOnly)
 	migrator.addMigration(
 		4,
 		std::make_shared<SettingsMigrationLambda>(
-			[](const SettingsMigration* migration, Settings* settings) {
+			[](const SettingsMigration* migration, Settings* settings)
+			{
 				std::wstring colorSchemePathString = migration->getValueFromSettings<std::wstring>(
 					settings, "application/color_scheme", L"");
 				if (!colorSchemePathString.empty())
@@ -72,29 +73,31 @@ bool ApplicationSettings::load(const FilePath& filePath, bool readOnly)
 			}));
 	migrator.addMigration(
 		7,
-		std::make_shared<SettingsMigrationLambda>([](const SettingsMigration* migration,
-													 Settings* settings) {
-			std::vector<std::string> recentProjects;
-			recentProjects.push_back("./projects/tictactoe_py/tictactoe_py.srctrlprj");
-			utility::append(
-				recentProjects,
-				migration->getValuesFromSettings(
-					settings, "user/recent_projects/recent_project", std::vector<std::string>()));
-
-			for (size_t i = 0; i < recentProjects.size(); i++)
+		std::make_shared<SettingsMigrationLambda>(
+			[](const SettingsMigration* migration, Settings* settings)
 			{
-				if (recentProjects[i] == "./projects/tictactoe/tictactoe.srctrlprj")
+				std::vector<std::string> recentProjects;
+				recentProjects.push_back("./projects/tictactoe_py/tictactoe_py.srctrlprj");
+				utility::append(
+					recentProjects,
+					migration->getValuesFromSettings(
+						settings, "user/recent_projects/recent_project", std::vector<std::string>()));
+
+				for (size_t i = 0; i < recentProjects.size(); i++)
 				{
-					recentProjects[i] = "./projects/tictactoe_cpp/tictactoe_cpp.srctrlprj";
+					if (recentProjects[i] == "./projects/tictactoe/tictactoe.srctrlprj")
+					{
+						recentProjects[i] = "./projects/tictactoe_cpp/tictactoe_cpp.srctrlprj";
+					}
 				}
-			}
-			migration->setValuesInSettings(
-				settings, "user/recent_projects/recent_project", recentProjects);
-		}));
+				migration->setValuesInSettings(
+					settings, "user/recent_projects/recent_project", recentProjects);
+			}));
 	migrator.addMigration(
 		8,
 		std::make_shared<SettingsMigrationLambda>(
-			[](const SettingsMigration* migration, Settings* settings) {
+			[](const SettingsMigration* migration, Settings* settings)
+			{
 				std::vector<FilePath> cxxHeaderSearchPaths = migration->getValuesFromSettings(
 					settings,
 					"indexing/cxx/header_search_paths/header_search_path",
@@ -210,8 +213,9 @@ std::wstring ApplicationSettings::getColorSchemeName() const
 
 FilePath ApplicationSettings::getColorSchemePath() const
 {
-	FilePath defaultPath(ResourcePaths::getColorSchemesPath().concatenate(L"bright.xml"));
-	FilePath path(ResourcePaths::getColorSchemesPath().concatenate(getColorSchemeName() + L".xml"));
+	FilePath defaultPath(ResourcePaths::getColorSchemesDirectoryPath().concatenate(L"bright.xml"));
+	FilePath path(
+		ResourcePaths::getColorSchemesDirectoryPath().concatenate(getColorSchemeName() + L".xml"));
 
 	if (path != defaultPath && !path.exists())
 	{
@@ -340,7 +344,7 @@ void ApplicationSettings::setVerboseIndexerLoggingEnabled(bool value)
 FilePath ApplicationSettings::getLogDirectoryPath() const
 {
 	return FilePath(getValue<std::wstring>(
-		"application/log_directory_path", UserPaths::getLogPath().getAbsolute().wstr()));
+		"application/log_directory_path", UserPaths::getLogDirectoryPath().getAbsolute().wstr()));
 }
 
 void ApplicationSettings::setLogDirectoryPath(const FilePath& path)
@@ -570,7 +574,7 @@ std::vector<FilePath> ApplicationSettings::getRecentProjects() const
 		}
 		else
 		{
-			recentProjects.push_back(UserPaths::getUserDataPath().concatenate(project));
+			recentProjects.push_back(UserPaths::getUserDataDirectoryPath().concatenate(project));
 		}
 	}
 	return recentProjects;
@@ -579,83 +583,6 @@ std::vector<FilePath> ApplicationSettings::getRecentProjects() const
 bool ApplicationSettings::setRecentProjects(const std::vector<FilePath>& recentProjects)
 {
 	return setPathValues("user/recent_projects/recent_project", recentProjects);
-}
-
-std::string ApplicationSettings::getUserToken() const
-{
-	return getValue<std::string>("user/token", "");
-}
-
-void ApplicationSettings::setUserToken(std::string token)
-{
-	setValue<std::string>("user/token", token);
-}
-
-bool ApplicationSettings::getAutomaticUpdateCheck() const
-{
-	return getValue<bool>("user/update_check/automatic", true);
-}
-
-void ApplicationSettings::setAutomaticUpdateCheck(bool automaticUpdates)
-{
-	setValue<bool>("user/update_check/automatic", automaticUpdates);
-}
-
-TimeStamp ApplicationSettings::getLastUpdateCheck() const
-{
-	return TimeStamp(getValue<std::string>("user/update_check/time_stamp", ""));
-}
-
-void ApplicationSettings::setLastUpdateCheck(const TimeStamp& time)
-{
-	setValue<std::string>("user/update_check/time_stamp", time.toString());
-}
-
-Version ApplicationSettings::getSkipUpdateForVersion() const
-{
-	return Version::fromString(getValue<std::string>("user/update_check/skip_version", "2017.1.0"));
-}
-
-void ApplicationSettings::setSkipUpdateForVersion(const Version& version)
-{
-	if (version.isValid())
-	{
-		setValue<std::string>("user/update_check/skip_version", version.toDisplayString());
-	}
-}
-
-std::string ApplicationSettings::getUpdateDownloadUrl() const
-{
-	return getValue<std::string>("user/update_check/update_url", "");
-}
-
-void ApplicationSettings::setUpdateDownloadUrl(const std::string& url)
-{
-	setValue<std::string>("user/update_check/update_url", url);
-}
-
-Version ApplicationSettings::getUpdateVersion() const
-{
-	return Version::fromString(
-		getValue<std::string>("user/update_check/update_version", "2017.1.0"));
-}
-
-std::string ApplicationSettings::getUpdateNews() const
-{
-	return getValue<std::string>("user/update_check/news", "");
-}
-
-void ApplicationSettings::setUpdateNews(const std::string& news)
-{
-	setValue<std::string>("user/update_check/news", news);
-}
-
-void ApplicationSettings::setUpdateVersion(const Version& version)
-{
-	if (version.isValid())
-	{
-		setValue<std::string>("user/update_check/update_version", version.toDisplayString());
-	}
 }
 
 bool ApplicationSettings::getSeenErrorHelpMessage() const

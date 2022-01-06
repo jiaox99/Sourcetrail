@@ -37,8 +37,8 @@ add_files(
 	qt/element/code/QtCodeFileTitleBar.h
 	qt/element/code/QtCodeFileTitleButton.cpp
 	qt/element/code/QtCodeFileTitleButton.h
-	qt/element/code/QtCodeNavigateable.cpp
-	qt/element/code/QtCodeNavigateable.h
+	qt/element/code/QtCodeNavigable.cpp
+	qt/element/code/QtCodeNavigable.h
 	qt/element/code/QtCodeNavigator.cpp
 	qt/element/code/QtCodeNavigator.h
 	qt/element/code/QtCodeSnippet.cpp
@@ -68,8 +68,6 @@ add_files(
 	qt/element/dialog/QtListBoxItem.h
 	qt/element/dialog/QtLocationPicker.cpp
 	qt/element/dialog/QtLocationPicker.h
-	qt/element/dialog/QtNewsWidget.cpp
-	qt/element/dialog/QtNewsWidget.h
 	qt/element/dialog/QtPathListBox.cpp
 	qt/element/dialog/QtPathListBox.h
 	qt/element/dialog/QtPathListBoxItem.cpp
@@ -82,8 +80,6 @@ add_files(
 	qt/element/dialog/QtStringListBoxItem.h
 	qt/element/dialog/QtTextEdit.cpp
 	qt/element/dialog/QtTextEdit.h
-	qt/element/dialog/QtUpdateCheckerWidget.cpp
-	qt/element/dialog/QtUpdateCheckerWidget.h
 
 	qt/element/QtTooltip.cpp
 	qt/element/QtTooltip.h
@@ -146,8 +142,6 @@ add_files(
 	qt/network/QtRequest.h
 	qt/network/QtTcpWrapper.cpp
 	qt/network/QtTcpWrapper.h
-	qt/network/QtUpdateChecker.cpp
-	qt/network/QtUpdateChecker.h
 
 	qt/project_wizard/content/path/QtProjectWizardContentPath.cpp
 	qt/project_wizard/content/path/QtProjectWizardContentPath.h
@@ -186,6 +180,8 @@ add_files(
 	qt/project_wizard/QtProjectWizardWindow.cpp
 	qt/project_wizard/QtProjectWizardWindow.h
 
+	qt/utility/compatibilityQt.cpp
+	qt/utility/compatibilityQt.h
 	qt/utility/QtContextMenu.cpp
 	qt/utility/QtContextMenu.h
 	qt/utility/QtDeviceScaledPixmap.cpp

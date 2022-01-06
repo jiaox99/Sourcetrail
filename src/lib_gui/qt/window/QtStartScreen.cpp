@@ -11,8 +11,6 @@
 #include "ApplicationSettings.h"
 #include "MessageLoadProject.h"
 #include "ProjectSettings.h"
-#include "QtNewsWidget.h"
-#include "QtUpdateCheckerWidget.h"
 #include "ResourcePaths.h"
 #include "Version.h"
 #include "utilityQt.h"
@@ -82,19 +80,17 @@ void QtRecentProjectButton::handleButtonClick()
 QtStartScreen::QtStartScreen(QWidget* parent)
 	: QtWindow(true, parent)
 	, m_cppIcon(QString::fromStdWString(
-		  ResourcePaths::getGuiPath().concatenate(L"icon/cpp_icon.png").wstr()))
+		  ResourcePaths::getGuiDirectoryPath().concatenate(L"icon/cpp_icon.png").wstr()))
 	, m_cIcon(QString::fromStdWString(
-		  ResourcePaths::getGuiPath().concatenate(L"icon/c_icon.png").wstr()))
+		  ResourcePaths::getGuiDirectoryPath().concatenate(L"icon/c_icon.png").wstr()))
 	, m_pythonIcon(QString::fromStdWString(
-		  ResourcePaths::getGuiPath().concatenate(L"icon/python_icon.png").wstr()))
+		  ResourcePaths::getGuiDirectoryPath().concatenate(L"icon/python_icon.png").wstr()))
 	, m_javaIcon(QString::fromStdWString(
-		  ResourcePaths::getGuiPath().concatenate(L"icon/java_icon.png").wstr()))
+		  ResourcePaths::getGuiDirectoryPath().concatenate(L"icon/java_icon.png").wstr()))
 	, m_projectIcon(QString::fromStdWString(
-		  ResourcePaths::getGuiPath().concatenate(L"icon/empty_icon.png").wstr()))
+		  ResourcePaths::getGuiDirectoryPath().concatenate(L"icon/empty_icon.png").wstr()))
 	, m_githubIcon(QString::fromStdWString(
-		  ResourcePaths::getGuiPath().concatenate(L"startscreen/github_icon.png").wstr()))
-	, m_patreonIcon(QString::fromStdWString(
-		  ResourcePaths::getGuiPath().concatenate(L"startscreen/patreon_icon.png").wstr()))
+		  ResourcePaths::getGuiDirectoryPath().concatenate(L"startscreen/github_icon.png").wstr()))
 {
 }
 
@@ -164,15 +160,15 @@ void QtStartScreen::updateButtons()
 		}
 		i++;
 	}
-	setStyleSheet(utility::getStyleSheet(
-					  ResourcePaths::getGuiPath().concatenate(L"startscreen/startscreen.css"))
+	setStyleSheet(utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(
+											 L"startscreen/startscreen.css"))
 					  .c_str());
 }
 
 void QtStartScreen::setupStartScreen()
 {
-	setStyleSheet(utility::getStyleSheet(
-					  ResourcePaths::getGuiPath().concatenate(L"startscreen/startscreen.css"))
+	setStyleSheet(utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(
+											 L"startscreen/startscreen.css"))
 					  .c_str());
 	addLogo();
 
@@ -190,49 +186,23 @@ void QtStartScreen::setupStartScreen()
 		versionLabel->setObjectName(QStringLiteral("boldLabel"));
 		col->addWidget(versionLabel);
 
-		QtUpdateCheckerWidget* checker = new QtUpdateCheckerWidget(this);
-		col->addWidget(checker);
+		col->addSpacing(20);
 
-		col->addSpacing(15);
-
-		QPushButton* githubButton = new QPushButton(QStringLiteral("Contribute on GitHub"), this);
+		QPushButton* githubButton = new QPushButton(QStringLiteral("View on GitHub"), this);
 		githubButton->setAttribute(Qt::WA_LayoutUsesWidgetRect);	// fixes layouting on Mac
 		githubButton->setObjectName(QStringLiteral("infoButton"));
 		githubButton->setIcon(m_githubIcon);
 		githubButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-		connect(githubButton, &QPushButton::clicked, []() {
-			QDesktopServices::openUrl(QUrl(
-				QStringLiteral("https://github.com/CoatiSoftware/Sourcetrail"), QUrl::TolerantMode));
-		});
+		connect(
+			githubButton,
+			&QPushButton::clicked,
+			[]()
+			{
+				QDesktopServices::openUrl(QUrl(
+					QStringLiteral("https://github.com/CoatiSoftware/Sourcetrail"),
+					QUrl::TolerantMode));
+			});
 		col->addWidget(githubButton);
-
-		col->addSpacing(8);
-
-		// QPushButton* patreonButton = new QPushButton("Support on Patreon", this);
-		QPushButton* patreonButton = new QPushButton(QStringLiteral("Become a Patron"), this);
-		patreonButton->setAttribute(Qt::WA_LayoutUsesWidgetRect);	 // fixes layouting on Mac
-		patreonButton->setObjectName(QStringLiteral("infoButton"));
-		patreonButton->setIcon(m_patreonIcon);
-		patreonButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-		connect(patreonButton, &QPushButton::clicked, []() {
-			QDesktopServices::openUrl(
-				QUrl(QStringLiteral("https://www.patreon.com/sourcetrail"), QUrl::TolerantMode));
-		});
-		col->addWidget(patreonButton);
-
-		col->addSpacing(15);
-
-		{
-			QLabel* newsHeader = new QLabel(QStringLiteral("News:"));
-			newsHeader->setObjectName(QStringLiteral("boldLabel"));
-			col->addWidget(newsHeader);
-
-			QtNewsWidget* newsWidget = new QtNewsWidget(this);
-			col->addWidget(newsWidget);
-
-			connect(
-				checker, &QtUpdateCheckerWidget::updateReceived, newsWidget, &QtNewsWidget::updateNews);
-		}
 
 		col->addSpacing(35);
 		col->addStretch();
@@ -274,7 +244,8 @@ void QtStartScreen::setupStartScreen()
 			button->setAttribute(Qt::WA_LayoutUsesWidgetRect);	  // fixes layouting on Mac
 			button->setIcon(m_projectIcon);
 			button->setIconSize(QSize(30, 30));
-			button->setMinimumSize(button->fontMetrics().boundingRect(button->text()).width() + 45, 40);
+			button->setMinimumSize(
+				button->fontMetrics().boundingRect(button->text()).width() + 45, 40);
 			button->setObjectName(QStringLiteral("recentButtonMissing"));
 			button->minimumSizeHint();	  // force font loading
 			m_recentProjectsButtons.push_back(button);

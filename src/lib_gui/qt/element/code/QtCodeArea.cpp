@@ -28,9 +28,11 @@
 #include "QtContextMenu.h"
 #include "SourceLocationFile.h"
 #include "TextCodec.h"
+#include "compatibilityQt.h"
 #include "utility.h"
 #include "utilityApp.h"
 #include "utilityString.h"
+#include "utilityQt.h"
 
 MouseWheelOverScrollbarFilter::MouseWheelOverScrollbarFilter() {}
 
@@ -40,7 +42,8 @@ bool MouseWheelOverScrollbarFilter::eventFilter(QObject* obj, QEvent* event)
 	if (event->type() == QEvent::Wheel && scrollbar)
 	{
 		QRect scrollbarArea(scrollbar->pos(), scrollbar->size());
-		QPoint globalMousePos = dynamic_cast<QWheelEvent*>(event)->globalPos();
+		QPoint globalMousePos = utility::compatibility::QWheelEvent_globalPos(
+			*dynamic_cast<QWheelEvent*>(event));
 		QPoint localMousePos = scrollbar->mapFromGlobal(globalMousePos);
 
 		// instead of "scrollbar->underMouse()" we need this check implemented here because
@@ -141,6 +144,9 @@ QSize QtCodeArea::sizeHint() const
 void QtCodeArea::lineNumberAreaPaintEvent(QPaintEvent* event)
 {
 	QPainter painter(m_lineNumberArea);
+
+	utility::setWidgetBackgroundColor(
+		m_lineNumberArea, ColorScheme::getInstance()->getColor("code/snippet/line_number/background"));
 
 	QTextBlock block = firstVisibleBlock();
 	int blockNumber = block.blockNumber();
@@ -643,7 +649,8 @@ bool QtCodeArea::moveFocusToLine(int lineNumber, int targetColumn, bool up)
 {
 	while (true)
 	{
-		if (lineNumber < getStartLineNumber() || lineNumber > getEndLineNumber())
+		if (static_cast<size_t>(lineNumber) < getStartLineNumber() ||
+			static_cast<size_t>(lineNumber) > getEndLineNumber())
 		{
 			break;
 		}
@@ -821,7 +828,7 @@ void QtCodeArea::mouseReleaseEvent(QMouseEvent* event)
 	viewport()->setCursor(Qt::ArrowCursor);
 
 	const int panningThreshold = 5;
-	if (m_panningDistance < panningThreshold)	 // dont do anything if mouse is release to end
+	if (m_panningDistance < panningThreshold)	 // don't do anything if mouse is release to end
 												 // some real panning action.
 	{
 		if (Qt::KeyboardModifier::ControlModifier & QApplication::keyboardModifiers())

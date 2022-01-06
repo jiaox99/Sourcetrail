@@ -33,6 +33,7 @@
 #include "MessageRefresh.h"
 #include "MessageRefreshUI.h"
 #include "MessageResetZoom.h"
+#include "MessageSaveAsImage.h"
 #include "MessageTabClose.h"
 #include "MessageTabOpen.h"
 #include "MessageTabSelect.h"
@@ -122,7 +123,7 @@ QtMainWindow::QtMainWindow()
 	setDockNestingEnabled(true);
 
 	setWindowIcon(QIcon(QString::fromStdWString(
-		ResourcePaths::getGuiPath().concatenate(L"icon/logo_1024_1024.png").wstr())));
+		ResourcePaths::getGuiDirectoryPath().concatenate(L"icon/logo_1024_1024.png").wstr())));
 	setWindowFlags(Qt::Widget);
 
 	QApplication* app = dynamic_cast<QApplication*>(QCoreApplication::instance());
@@ -133,9 +134,9 @@ QtMainWindow::QtMainWindow()
 	if (utility::getOsType() != OS_MAC)
 	{
 		// can only be done once, because resetting the style on the QCoreApplication causes crash
-		app->setStyleSheet(
-			utility::getStyleSheet(ResourcePaths::getGuiPath().concatenate(L"main/scrollbar.css"))
-				.c_str());
+		app->setStyleSheet(utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(
+													  L"main/scrollbar.css"))
+							   .c_str());
 	}
 
 	setupProjectMenu();
@@ -146,7 +147,7 @@ QtMainWindow::QtMainWindow()
 	setupHelpMenu();
 
 	// Need to call loadLayout here for right DockWidget size on Linux
-	// Seconde call is in Application.cpp
+	// Second call is in Application.cpp
 	loadLayout();
 }
 
@@ -291,7 +292,7 @@ View* QtMainWindow::findFloatingView(const std::string& name) const
 void QtMainWindow::loadLayout()
 {
 	QSettings settings(
-		QString::fromStdWString(UserPaths::getWindowSettingsPath().wstr()), QSettings::IniFormat);
+		QString::fromStdWString(UserPaths::getWindowSettingsFilePath().wstr()), QSettings::IniFormat);
 
 	settings.beginGroup(QStringLiteral("MainWindow"));
 	resize(settings.value(QStringLiteral("size"), QSize(600, 400)).toSize());
@@ -308,7 +309,7 @@ void QtMainWindow::loadLayout()
 void QtMainWindow::loadDockWidgetLayout()
 {
 	QSettings settings(
-		QString::fromStdWString(UserPaths::getWindowSettingsPath().wstr()), QSettings::IniFormat);
+		QString::fromStdWString(UserPaths::getWindowSettingsFilePath().wstr()), QSettings::IniFormat);
 	this->restoreState(settings.value(QStringLiteral("DOCK_LOCATIONS")).toByteArray());
 
 	for (DockWidget dock: m_dockWidgets)
@@ -328,7 +329,7 @@ void QtMainWindow::loadWindow(bool showStartWindow)
 void QtMainWindow::saveLayout()
 {
 	QSettings settings(
-		QString::fromStdWString(UserPaths::getWindowSettingsPath().wstr()), QSettings::IniFormat);
+		QString::fromStdWString(UserPaths::getWindowSettingsFilePath().wstr()), QSettings::IniFormat);
 
 	settings.beginGroup(QStringLiteral("MainWindow"));
 	settings.setValue(QStringLiteral("maximized"), isMaximized());
@@ -406,7 +407,8 @@ void QtMainWindow::setContentEnabled(bool enabled)
 void QtMainWindow::refreshStyle()
 {
 	setStyleSheet(
-		utility::getStyleSheet(ResourcePaths::getGuiPath().concatenate(L"main/main.css")).c_str());
+		utility::getStyleSheet(ResourcePaths::getGuiDirectoryPath().concatenate(L"main/main.css"))
+			.c_str());
 
 	QFont tooltipFont = QToolTip::font();
 	tooltipFont.setPixelSize(ApplicationSettings::getInstance()->getFontSize());
@@ -508,7 +510,7 @@ void QtMainWindow::openSettings()
 
 void QtMainWindow::showDocumentation()
 {
-	QDesktopServices::openUrl(QUrl(QStringLiteral("https://sourcetrail.com/documentation/")));
+	QDesktopServices::openUrl(QUrl(QString::fromStdString(utility::getDocumentationLink())));
 }
 
 void QtMainWindow::showKeyboardShortcuts()
@@ -543,7 +545,8 @@ void QtMainWindow::showLicenses()
 void QtMainWindow::showDataFolder()
 {
 	QDesktopServices::openUrl(QUrl(
-		QString::fromStdWString(L"file:///" + UserPaths::getUserDataPath().makeCanonical().wstr()),
+		QString::fromStdWString(
+			L"file:///" + UserPaths::getUserDataDirectoryPath().makeCanonical().wstr()),
 		QUrl::TolerantMode));
 }
 
@@ -716,6 +719,19 @@ void QtMainWindow::forceRefresh()
 	MessageRefresh().refreshAll().dispatch();
 }
 
+void QtMainWindow::saveAsImage()
+{
+	QString filePath = QtFileDialog::showSaveFileDialog(
+		this, tr("Save as Image"), FilePath(), "PNG (*.png);;JPEG (*.JPEG);;BMP Files (*.bmp)");
+	if (filePath.isNull())
+	{
+		return;
+	}
+	MessageSaveAsImage m(filePath);
+	m.setSchedulerId(TabId::currentTab());
+	m.dispatch();
+}
+
 void QtMainWindow::undo()
 {
 	MessageHistoryUndo().dispatch();
@@ -743,10 +759,10 @@ void QtMainWindow::resetZoom()
 
 void QtMainWindow::resetWindowLayout()
 {
-	FileSystem::remove(UserPaths::getWindowSettingsPath());
+	FileSystem::remove(UserPaths::getWindowSettingsFilePath());
 	FileSystem::copyFile(
-		ResourcePaths::getFallbackPath().concatenate(L"window_settings.ini"),
-		UserPaths::getWindowSettingsPath());
+		ResourcePaths::getFallbackDirectoryPath().concatenate(L"window_settings.ini"),
+		UserPaths::getWindowSettingsFilePath());
 	loadDockWidgetLayout();
 }
 
@@ -922,6 +938,14 @@ void QtMainWindow::setupEditMenu()
 
 	menu->addAction(
 		tr("&To overview"), this, &QtMainWindow::overview, QKeySequence(Qt::CTRL + Qt::Key_Home));
+
+	menu->addSeparator();
+
+	menu->addAction(
+		tr("&Save Graph as Image..."),
+		this,
+		&QtMainWindow::saveAsImage,
+		QKeySequence(Qt::SHIFT + Qt::CTRL + Qt::Key_S));
 
 	menu->addSeparator();
 
@@ -1142,7 +1166,9 @@ void QtMainWindow::setShowDockWidgetTitleBars(bool showTitleBars)
 	{
 		if (showTitleBars)
 		{
-			dock.widget->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+			dock.widget->setFeatures(
+				QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable |
+				QDockWidget::DockWidgetFloatable);
 			dock.widget->setTitleBarWidget(nullptr);
 		}
 		else

@@ -844,7 +844,7 @@ TEST_CASE("cxx parser finds template argument of dependent non type template par
 
 //	TS_ASSERT(utility::containsElement<std::wstring>(
 //		client->typeUses, // TODO: record edge between vector<int, Alloc<int>> and Alloc<int> (this
-// is an issue because we dont have any typeloc for this edge -.-
+// is an issue because we don't have any typeloc for this edge -.-
 //	));
 //}
 
@@ -2785,7 +2785,7 @@ TEST_CASE(
 
 TEST_CASE(
 	"cxx parser finds type template argument in non default constructor of explicit template "
-	"instaitiation")
+	"instantiation")
 {
 	std::shared_ptr<TestStorage> client = parseCode(
 		"template <typename T>\n"
@@ -2808,7 +2808,7 @@ TEST_CASE(
 
 TEST_CASE(
 	"cxx parser finds type template argument in default constructor of explicit template "
-	"instaitiation")
+	"instantiation")
 {
 	std::shared_ptr<TestStorage> client = parseCode(
 		"template <typename T>\n"
@@ -2830,7 +2830,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-	"cxx parser finds type template argument in new expression of explicit template instaitiation")
+	"cxx parser finds type template argument in new expression of explicit template instantiation")
 {
 	std::shared_ptr<TestStorage> client = parseCode(
 		"template <typename T>\n"
@@ -2921,7 +2921,7 @@ TEST_CASE(
 		"	A<g_p> a;\n"
 		"}\n");
 
-	REQUIRE(utility::containsElement<std::wstring>(client->typeUses, L"A<&g_p> -> P g_p <9:4 9:6>"));
+	REQUIRE(utility::containsElement<std::wstring>(client->typeUses, L"A<g_p> -> P g_p <9:4 9:6>"));
 }
 
 TEST_CASE(
@@ -3195,8 +3195,7 @@ TEST_CASE(
 		"{\n"
 		"};\n");
 
-	REQUIRE(
-		utility::containsElement<std::wstring>(client->typeUses, L"A<&g_p> -> P g_p <8:9 8:11>"));
+	REQUIRE(utility::containsElement<std::wstring>(client->typeUses, L"A<g_p> -> P g_p <8:9 8:11>"));
 }
 
 TEST_CASE("cxx parser finds template template argument of explicit template specialization")
@@ -3312,8 +3311,8 @@ TEST_CASE(
 		"{\n"
 		"};\n");
 
-	REQUIRE(utility::containsElement<std::wstring>(
-		client->typeUses, L"A<&g_p, q> -> P g_p <8:9 8:11>"));
+	REQUIRE(
+		utility::containsElement<std::wstring>(client->typeUses, L"A<g_p, q> -> P g_p <8:9 8:11>"));
 	REQUIRE(utility::containsElement<std::wstring>(
 		client->localSymbols, L"input.cc<7:14> <8:14 8:14>"));
 }
@@ -4193,8 +4192,8 @@ TEST_CASE("cxx parser finds correct error location after line directive")
 TEST_CASE("cxx parser catches error in macro expansion")
 {
 	std::shared_ptr<TestStorage> client = parseCode(
-		"#define MACRO_WITH_NONEXISTING_PATH \"this_path_does_not_exist.txt\"\n"
-		"#include MACRO_WITH_NONEXISTING_PATH\n");
+		"#define MACRO_WITH_NONEXISTENT_PATH \"this_path_does_not_exist.txt\"\n"
+		"#include MACRO_WITH_NONEXISTENT_PATH\n");
 
 	REQUIRE(utility::containsElement<std::wstring>(
 		client->errors, L"'this_path_does_not_exist.txt' file not found <2:10 2:10>"));

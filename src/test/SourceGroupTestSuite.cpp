@@ -148,9 +148,15 @@ std::wstring indexerCommandCustomToString(
 	std::shared_ptr<const IndexerCommandCustom> indexerCommand, const FilePath& baseDirectory)
 {
 	std::wstring result;
-	result += L"SourceFilePath: \"" +
+	result += L"IndexerCommandCustom\n";
+	result += L"\tSourceFilePath: \"" +
 		indexerCommand->getSourceFilePath().getRelativeTo(baseDirectory).wstr() + L"\"\n";
-	result += L"\tCustom Command: \"" + indexerCommand->getCustomCommand() + L"\"\n";
+	result += L"\tCustom Command: \"" + indexerCommand->getCommand() + L"\"\n";
+	result += L"\tArguments:\n";
+	for (const std::wstring& argument: indexerCommand->getArguments())
+	{
+		result += L"\t\t\"" + argument + L"\"\n";
+	}
 	return result;
 }
 
@@ -235,7 +241,7 @@ void generateAndCompareExpectedOutput(
 			expectedOutputFilePath);
 		REQUIRE_MESSAGE(
 			("Output does not match the expected line count for project \"" +
-			 utility::encodeToUtf8(projectName) + "\".")
+			 utility::encodeToUtf8(projectName) + "\". Output was: " + output->getText())
 				.c_str(),
 			expectedOutput->getLineCount() == output->getLineCount());
 		if (expectedOutput->getLineCount() == output->getLineCount())
@@ -505,8 +511,8 @@ TEST_CASE("sourcegroup java gradle generates expected output")
 
 	std::shared_ptr<ApplicationSettings> applicationSettings = ApplicationSettings::getInstance();
 
-	const FilePath storedAppPath = AppPath::getSharedDataPath();
-	AppPath::setSharedDataPath(storedAppPath.getConcatenated(L"../app").makeAbsolute());
+	const FilePath storedAppPath = AppPath::getSharedDataDirectoryPath();
+	AppPath::setSharedDataDirectoryPath(storedAppPath.getConcatenated(L"../app").makeAbsolute());
 
 	std::vector<FilePath> storedJreSystemLibraryPaths =
 		applicationSettings->getJreSystemLibraryPaths();
@@ -516,7 +522,7 @@ TEST_CASE("sourcegroup java gradle generates expected output")
 		projectName, std::make_shared<SourceGroupJavaGradle>(sourceGroupSettings));
 
 	applicationSettings->setJreSystemLibraryPaths(storedJreSystemLibraryPaths);
-	AppPath::setSharedDataPath(storedAppPath);
+	AppPath::setSharedDataDirectoryPath(storedAppPath);
 #	endif
 }
 

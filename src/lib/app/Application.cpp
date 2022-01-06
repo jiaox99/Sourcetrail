@@ -23,7 +23,6 @@
 #include "TabId.h"
 #include "TaskManager.h"
 #include "TaskScheduler.h"
-#include "UpdateChecker.h"
 #include "UserPaths.h"
 #include "Version.h"
 #include "ViewFactory.h"
@@ -76,8 +75,6 @@ void Application::createInstance(
 		s_instance->m_ideCommunicationController = networkFactory->createIDECommunicationController(
 			s_instance->m_storageCache.get());
 		s_instance->m_ideCommunicationController->startListening();
-
-		s_instance->m_updateChecker = networkFactory->createUpdateChecker();
 	}
 
 	s_instance->startMessagingAndScheduling();
@@ -109,10 +106,10 @@ std::string Application::getUUID()
 
 void Application::loadSettings()
 {
-	MessageStatus(L"Load settings: " + UserPaths::getAppSettingsPath().wstr()).dispatch();
+	MessageStatus(L"Load settings: " + UserPaths::getAppSettingsFilePath().wstr()).dispatch();
 
 	std::shared_ptr<ApplicationSettings> settings = ApplicationSettings::getInstance();
-	settings->load(UserPaths::getAppSettingsPath());
+	settings->load(UserPaths::getAppSettingsFilePath());
 
 	LogManager::getInstance()->setLoggingEnabled(settings->getLoggingEnabled());
 	Logger* logger = LogManager::getInstance()->getLoggerByType("FileLogger");
@@ -371,19 +368,6 @@ void Application::handleMessage(MessageSwitchColorScheme* message)
 	MessageRefreshUI().noStyleReload().dispatch();
 }
 
-void Application::handleMessage(MessageWindowFocus* message)
-{
-	if (!message->focusIn)
-	{
-		return;
-	}
-
-	if (m_project && ApplicationSettings::getInstance()->getAutomaticUpdateCheck())
-	{
-		m_updateChecker->checkUpdate();
-	}
-}
-
 void Application::startMessagingAndScheduling()
 {
 	TaskManager::getScheduler(TabId::app())->startSchedulerLoopThreaded();
@@ -408,13 +392,6 @@ void Application::loadWindow(bool showStartWindow)
 	if (!m_loadedWindow)
 	{
 		ApplicationSettings* appSettings = ApplicationSettings::getInstance().get();
-
-		// delay first update check by 24 hours at first launch
-		if (!appSettings->getLastUpdateCheck().isValid())
-		{
-			appSettings->setLastUpdateCheck(TimeStamp::now());
-			appSettings->save();
-		}
 
 		updateTitle();
 
@@ -464,7 +441,7 @@ void Application::updateRecentProjects(const FilePath& projectSettingsFilePath)
 		}
 
 		appSettings->setRecentProjects(recentProjects);
-		appSettings->save(UserPaths::getAppSettingsPath());
+		appSettings->save(UserPaths::getAppSettingsFilePath());
 
 		m_mainView->updateRecentProjectMenu();
 	}
@@ -533,8 +510,7 @@ bool Application::checkSharedMemory()
 			L"There was an error accessing shared memory on your computer: " + error +
 			L"\n\n"
 			"Project indexing is not possible. Please restart your computer or try running "
-			"Sourcetrail as admin. If the "
-			"issue persists contact mail@sourcetrail.com");
+			"Sourcetrail as admin.");
 		return false;
 	}
 

@@ -14,7 +14,6 @@ add_files(
 	app/LanguagePackage.h
 	app/LanguagePackageManager.cpp
 	app/LanguagePackageManager.h
-	app/UpdateChecker.h
 
 	component/controller/helper/ActivationListener.cpp
 	component/controller/helper/ActivationListener.h
@@ -490,6 +489,7 @@ add_files(
 	utility/messaging/type/graph/MessageGraphNodeHide.h
 	utility/messaging/type/graph/MessageGraphNodeMove.h
 	utility/messaging/type/graph/MessageScrollGraph.h
+	utility/messaging/type/graph/MessageSaveAsImage.h
 
 	utility/messaging/type/history/MessageHistoryToPosition.h
 	utility/messaging/type/history/MessageHistoryRedo.h

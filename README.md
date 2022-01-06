@@ -1,21 +1,18 @@
 # Sourcetrail
 
-[Sourcetrail](https://www.sourcetrail.com/) is a free and open-source cross-platform source explorer that helps you get productive on unfamiliar source code.
+*__Important Note:__ This project was archived by the original autors and maintainers of Sourcetrail by the end of 2021. If you want to know more about this decision, read more on our [blog](https://web.archive.org/web/20211119200517/https://www.sourcetrail.com/blog/).*
+
+Sourcetrail is a free and open-source cross-platform source explorer that helps you get productive on unfamiliar source code.
 
 Windows: [![Build status](https://ci.appveyor.com/api/projects/status/0c258a2opn3loyc2/branch/master?svg=true)](https://ci.appveyor.com/project/mlangkabel/sourcetrail/branch/master)
 
 Linux: [![Build Status](https://travis-ci.org/CoatiSoftware/Sourcetrail.svg?branch=master)](https://travis-ci.org/CoatiSoftware/Sourcetrail)
 
-
 __Links__
-* [Website](https://www.sourcetrail.com/)
-* [Download](https://www.sourcetrail.com/downloads)
-* [Quick Start Guide](https://www.sourcetrail.com/documentation/#QUICKSTARTGUIDE)
-* [Documentation](https://www.sourcetrail.com/documentation)
+* [Download](https://github.com/CoatiSoftware/Sourcetrail/releases)
+* [Quick Start Guide](DOCUMENTATION.md#getting-started)
+* [Documentation](DOCUMENTATION.md)
 * [Changelog](CHANGELOG.md)
-* [Slack Channel](https://join.slack.com/t/sourcetrail/shared_invite/enQtNDc3MjcyOTk5MTc0LTNhOWZhZjAxZmU1NTM0YjhhMzRhZWE1NTQ2NjQyYjc1ODE2MzViOTliMWUwODBjN2NlMjkwMDc0MjAxMzJkY2E)
-* [Mailing List](https://coati.us12.list-manage.com/subscribe/post?u=3dabab4e475b5ed577d1dcd0f&id=cf7301fc53)
-* [Patreon](https://www.patreon.com/sourcetrail)
 
 !["Sourcetrail User Interface"](docs/readme/user_interface.png "Sourcetrail User Interface")
 
@@ -26,17 +23,17 @@ Sourcetrail is:
 * supporting C, C++, Java and Python
 * offering an SDK ([SourcetrailDB](https://github.com/CoatiSoftware/SourcetrailDB)) to write custom language extensions
 
-## Support Sourcetrail via Patreon
+## Sourcetrail on Patreon
 
-The ongoing development and regular software releases are made possible entirely by the support of [these awesome patrons](SPONSORS.md)! If you'd like to join them, please consider [becoming a patron](https://www.patreon.com/sourcetrail) of Sourcetrail.
+The open-source development and regular software releases are made possible entirely by the support of [these awesome patrons](SPONSORS.md)!
 
 ## Using Sourcetrail
 
-To setup Sourcetrail on your machine, you can either download the respective build for your operating system from our list of [Releases](https://www.sourcetrail.com/downloads) and install it on your machine, or use one of the following package managers:
+To setup Sourcetrail on your machine, you can either download the respective build for your operating system from our list of [Releases](https://github.com/CoatiSoftware/Sourcetrail/releases) and install it on your machine, or use one of the following package managers:
 
 * Use the [Chocolatey package](https://chocolatey.org/packages/sourcetrail) with `choco install sourcetrail`
 
-After your installation is complete, follow our [Quick Start Guide](https://www.sourcetrail.com/documentation/#QUICKSTARTGUIDE) to get to know Sourcetrail.
+After your installation is complete, follow our [Quick Start Guide](DOCUMENTATION.md#getting-started) to get to know Sourcetrail.
 
 ## How to Report Issues
 
@@ -50,7 +47,6 @@ Use the following template:
 * Sourcetrail version:
 * description of the problem:
 * steps to reproduce the problem:
-
 
 ### Supporting
 
@@ -113,7 +109,7 @@ Building Sourcetrail requires several dependencies to be in place on your machin
     $ cd Sourcetrail
     $ mkdir -p build/win64
     $ cd build/win64
-    $ cmake -G "Visual Studio 15 2017 Win64" -DBOOST_ROOT=<path/to/boost_1_68_0> -DQt5_DIR=<path/to/Qt/version/platform/compiler/lib/cmake/Qt5> ../..
+    $ cmake -G "Visual Studio 15 2017 Win64" -DBOOST_ROOT=<path/to/boost_1_67_0> -DQt5_DIR=<path/to/Qt/version/platform/compiler/lib/cmake/Qt5> ../..
     ```
     _Hint: If you are using the CMake GUI, we recommend that you activate advanced mode. Also you may be required to add some of the defines via the "Add Entry" button._
 
@@ -126,7 +122,7 @@ Building Sourcetrail requires several dependencies to be in place on your machin
     $ cd Sourcetrail
     $ mkdir -p build/Release
     $ cd build/Release
-    $ cmake -DCMAKE_BUILD_TYPE="Release" -DBOOST_ROOT=<path/to/boost_1_68_0> -DQt5_DIR=<path/to/Qt/version/platform/compiler/lib/cmake/Qt5> ../..
+    $ cmake -DCMAKE_BUILD_TYPE="Release" -DBOOST_ROOT=<path/to/boost_1_67_0> -DQt5_DIR=<path/to/Qt/version/platform/compiler/lib/cmake/Qt5> ../..
     ```
 * Now start the build with:
     ```
@@ -142,9 +138,9 @@ Building Sourcetrail requires several dependencies to be in place on your machin
 
 ### Required dependencies
 
-* __LLVM/Clang 10.0.0__
-    * __Reason__: Used for running the preprocessor on the indexedes source code, building and traversing an Abstract Syntax Tree and generating error messages.
-    * __Building__: Make sure to check out the correct tag: `git checkout llvmorg-10.0.0`
+* __LLVM/Clang 11.0.0__
+    * __Reason__: Used for running the preprocessor on the indexed source code, building and traversing an Abstract Syntax Tree and generating error messages.
+    * __Building__: Make sure to check out the correct tag: `git checkout llvmorg-11.0.0`
     * __Building for Windows__: Follow [these steps](https://clang.llvm.org/get_started.html) to build the project. Run the cmake command exactly as described.
     * __Building for Unix__: Follow this [installation guide](http://clang.llvm.org/docs/LibASTMatchersTutorial.html) to build the project. Make sure to build with `-DLLVM_ENABLE_RTTI=ON`.
 
@@ -163,14 +159,14 @@ Building Sourcetrail requires several dependencies to be in place on your machin
 
 * __JDK 1.8__
     * __Reason__: Used to build the Java indexer and make it callable from the C++ code via JNI.
-    * __Remarks__: Make sure that `<jdk_root>/bin` is available in your `PATH` environmen variable and that the `JAVA_HOME` environment variable is set:
+    * __Remarks__: Make sure that `<jdk_root>/bin` is available in your `PATH` environment variable and that the `JAVA_HOME` environment variable is set:
         ```
         JAVA_HOME=<path/to/Java>/jdk1.x.x_xxx
         ```
 
 * __Maven__
     * __REASON__: Used within Sourcetrail's automated tests.
-    * __Remarks__:  Make sure `.../apache-maven-x.x.x/bin` is available in your `PATH` environmen variable and that both `M2_HOME` and `MAVEN_HOME` environment variables are set:
+    * __Remarks__:  Make sure `.../apache-maven-x.x.x/bin` is available in your `PATH` environment variable and that both `M2_HOME` and `MAVEN_HOME` environment variables are set:
         ```
         M2_HOME=.../apache-maven-x.x.x
         MAVEN_HOME=.../apache-maven-x.x.x

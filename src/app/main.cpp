@@ -93,6 +93,11 @@ void addLanguagePackages()
 
 int main(int argc, char* argv[])
 {
+	// auto p = utility::executeProcessBoost(utility::searchPath(L"mvn") + L" --version", FilePath("/Users/ebsi/Documents/boost_1_67_0"), 3000);
+	// std::wcout << p.first << " " << p.second << std::endl;
+	// return 0;
+
+
 	QCoreApplication::addLibraryPath(QStringLiteral("."));
 
 #pragma warning(push)
@@ -202,8 +207,8 @@ int main(int argc, char* argv[])
 		ApplicationSettingsPrefiller::prefillPaths(ApplicationSettings::getInstance().get());
 		addLanguagePackages();
 
-		utility::loadFontsFromDirectory(ResourcePaths::getFontsPath(), L".otf");
-		utility::loadFontsFromDirectory(ResourcePaths::getFontsPath(), L".ttf");
+		utility::loadFontsFromDirectory(ResourcePaths::getFontsDirectoryPath(), L".otf");
+		utility::loadFontsFromDirectory(ResourcePaths::getFontsDirectoryPath(), L".ttf");
 
 		if (commandLineParser.hasError())
 		{

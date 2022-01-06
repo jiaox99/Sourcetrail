@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SOURCETRAIL_PYTHON_INDEXER_VERSION="v1_db25_p5"
+SOURCETRAIL_PYTHON_INDEXER_VERSION="v1_db25_p6"
 
 # Determine current platform
 PLATFORM='unknown'
@@ -94,6 +94,7 @@ fi
 echo -e $INFO "clearing $TARGET_PATH"
 rm -rf $TARGET_PATH
 mkdir -p $TARGET_PATH
+echo -e $INFO "copying downloaded data to $TARGET_PATH"
 cp -r $TEMP_PATH/$PACKAGE_NAME/* $TARGET_PATH
 
 

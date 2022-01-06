@@ -8,15 +8,16 @@
 class ResourcePaths
 {
 public:
-	static FilePath getColorSchemesPath();
-	static FilePath getSyntaxHighlightingRulesPath();
-	static FilePath getFallbackPath();
-	static FilePath getFontsPath();
-	static FilePath getGuiPath();
-	static FilePath getLicensePath();
-	static FilePath getJavaPath();
-	static FilePath getPythonPath();
-	static FilePath getCxxCompilerHeaderPath();
+	static FilePath getColorSchemesDirectoryPath();
+	static FilePath getSyntaxHighlightingRulesDirectoryPath();
+	static FilePath getFallbackDirectoryPath();
+	static FilePath getFontsDirectoryPath();
+	static FilePath getGuiDirectoryPath();
+	static FilePath getLicenseDirectoryPath();
+	static FilePath getJavaDirectoryPath();
+	static FilePath getPythonDirectoryPath();
+	static FilePath getCxxCompilerHeaderDirectoryPath();
+	static FilePath getPythonIndexerFilePath();
 };
 
 #endif	  // RESOURCE_PATHS_H

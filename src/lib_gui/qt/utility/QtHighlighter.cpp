@@ -88,7 +88,7 @@ void QtHighlighter::loadHighlightingRules()
 	}
 
 	for (const FilePath& path: FileSystem::getFilePathsFromDirectory(
-			 ResourcePaths::getSyntaxHighlightingRulesPath(), {L".rules"}))
+			 ResourcePaths::getSyntaxHighlightingRulesDirectoryPath(), {L".rules"}))
 	{
 		std::wstring language = path.withoutExtension().fileName();
 
@@ -100,7 +100,7 @@ void QtHighlighter::loadHighlightingRules()
 		if (doc.isNull() || !doc.isArray())
 		{
 			LOG_ERROR_STREAM(
-				<< "Highlinghting rules in \"" << path.str()
+				<< "Highlighting rules in \"" << path.str()
 				<< "\" couldn't be parsed as JSON: "
 				   "offset "
 				<< error.offset << " - " << error.errorString().toStdString());
