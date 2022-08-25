@@ -797,42 +797,36 @@ StorageNode SqliteIndexStorage::getNodeBySerializedName(const std::wstring& seri
 	return StorageNode();
 }
 
-std::vector<int> SqliteIndexStorage::getAvailableNodeTypes() const
+void splitEnums(int value, int bits, std::vector<int>& types)
 {
-	CppSQLite3Query q = executeQuery("SELECT DISTINCT type FROM node;");
-
-	std::vector<int> types;
-
-	while (!q.eof())
+	for (int i = 0; i < bits; i++)
 	{
-		const int type = q.getIntField(0, -1);
-		if (type != -1)
+		const int type = 1 >> i;
+		if ((type & value) > 0)
 		{
 			types.push_back(type);
 		}
-
-		q.nextRow();
 	}
+}
+
+std::vector<int> SqliteIndexStorage::getAvailableNodeTypes() const
+{
+	int nodeTypes= executeStatementScalar("SELECT node_types type FROM overview;", 0);
+
+	std::vector<int> types;
+
+	splitEnums(nodeTypes, 32, types);
 
 	return types;
 }
 
 std::vector<int> SqliteIndexStorage::getAvailableEdgeTypes() const
 {
-	CppSQLite3Query q = executeQuery("SELECT DISTINCT type FROM edge;");
+	int edgeTypes = executeStatementScalar("SELECT edge_types type FROM overview;", 0);
 
 	std::vector<int> types;
 
-	while (!q.eof())
-	{
-		const int type = q.getIntField(0, -1);
-		if (type != -1)
-		{
-			types.push_back(type);
-		}
-
-		q.nextRow();
-	}
+	splitEnums(edgeTypes, 32, types);
 
 	return types;
 }
@@ -1126,48 +1120,47 @@ std::vector<ErrorInfo> SqliteIndexStorage::getAllErrorInfos() const
 
 int SqliteIndexStorage::getNodeCount() const
 {
-	return executeStatementScalar("SELECT COUNT(*) FROM node;", 0);
+	return executeStatementScalar("SELECT node_count FROM overview;", 0);
 }
 
 int SqliteIndexStorage::getEdgeCount() const
 {
-	return executeStatementScalar("SELECT COUNT(*) FROM edge;", 0);
+	return executeStatementScalar("SELECT edge_count FROM overview;", 0);
 }
 
 int SqliteIndexStorage::getFileCount() const
 {
-	return executeStatementScalar("SELECT COUNT(*) FROM file WHERE indexed = 1;", 0);
+	return executeStatementScalar("SELECT file_count FROM overview;", 0);
 }
 
 int SqliteIndexStorage::getCompletedFileCount() const
 {
-	return executeStatementScalar("SELECT COUNT(*) FROM file WHERE indexed = 1 AND complete = 1;", 0);
+	return executeStatementScalar("SELECT completed_file_count FROM overview;", 0);
 }
 
 int SqliteIndexStorage::getFileLineSum() const
 {
-	return executeStatementScalar("SELECT SUM(line_count) FROM file;", 0);
+	return executeStatementScalar("SELECT file_line_sum FROM overview;", 0);
 }
 
 int SqliteIndexStorage::getSourceLocationCount() const
 {
-	return executeStatementScalar("SELECT COUNT(*) FROM source_location;", 0);
+	return executeStatementScalar("SELECT source_location_count FROM overview;", 0);
 }
 
 int SqliteIndexStorage::getErrorCount() const
 {
-	return executeStatementScalar(
-		"SELECT COUNT(*) FROM error INNER JOIN occurrence ON (error.id = occurrence.element_id);", 0);
+	return executeStatementScalar("SELECT error_count FROM overview;", 0);
 }
 
 std::vector<std::pair<int, SqliteDatabaseIndex>> SqliteIndexStorage::getIndices() const
 {
 	std::vector<std::pair<int, SqliteDatabaseIndex>> indices;
 	indices.push_back(std::make_pair(
-		STORAGE_MODE_CLEAR,
+		STORAGE_MODE_READ | STORAGE_MODE_CLEAR,
 		SqliteDatabaseIndex("edge_source_node_id_index", "edge(source_node_id)")));
 	indices.push_back(std::make_pair(
-		STORAGE_MODE_CLEAR,
+		STORAGE_MODE_READ | STORAGE_MODE_CLEAR,
 		SqliteDatabaseIndex("edge_target_node_id_index", "edge(target_node_id)")));
 	indices.push_back(std::make_pair(
 		STORAGE_MODE_READ | STORAGE_MODE_CLEAR,

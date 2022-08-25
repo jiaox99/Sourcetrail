@@ -468,10 +468,12 @@ void PersistentStorage::buildCaches()
 
 	clearCaches();
 
+	m_sqliteIndexStorage.beginTransaction();
 	buildFilePathMaps();
 	buildSearchIndex();
 	buildMemberEdgeIdOrderMap();
 	buildHierarchyCache();
+	m_sqliteIndexStorage.commitTransaction();
 }
 
 void PersistentStorage::optimizeMemory()
@@ -823,10 +825,12 @@ std::vector<SearchMatch> PersistentStorage::getAutocompletionSymbolMatches(
 			elementIds.insert(elementIds.end(), result.elementIds.begin(), result.elementIds.end());
 		}
 
+		m_sqliteIndexStorage.beginTransaction();
 		for (const StorageNode& node: m_sqliteIndexStorage.getAllByIds<StorageNode>(elementIds))
 		{
 			storageNodeMap.emplace(node.id, node);
 		}
+		m_sqliteIndexStorage.commitTransaction();
 	}
 
 	// create SearchMatches
@@ -990,10 +994,12 @@ std::vector<SearchMatch> PersistentStorage::getSearchMatchesForTokenIds(
 
 	// fetch StorageNodes for node ids
 	std::map<Id, StorageNode> storageNodeMap;
+	m_sqliteIndexStorage.beginTransaction();
 	for (StorageNode& node: m_sqliteIndexStorage.getAllByIds<StorageNode>(elementIds))
 	{
 		storageNodeMap.emplace(node.id, node);
 	}
+	m_sqliteIndexStorage.commitTransaction();
 
 	for (Id elementId: elementIds)
 	{
@@ -1031,6 +1037,7 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForAll() const
 
 	std::shared_ptr<Graph> graph = std::make_shared<Graph>();
 	const size_t sdk_size = m_symbolDefinitionKinds.size();
+	m_sqliteIndexStorage.beginTransaction();
 	m_sqliteIndexStorage.forEach<StorageNode>([&, sdk_size](StorageNode&& storageNode) {
 		const NodeType type(intToNodeKind(storageNode.type));
 		if (type.isFile())
@@ -1057,6 +1064,7 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForAll() const
 			}
 		}
 	});
+	m_sqliteIndexStorage.commitTransaction();
 	return graph;
 }
 
@@ -1106,6 +1114,8 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForActiveTokenIds(
 	std::vector<StorageEdge> edgesToBundle;
 
 	bool addFileContents = false;
+
+	m_sqliteIndexStorage.beginTransaction();
 
 	if (tokenIds.size() == 1)
 	{
@@ -1261,6 +1271,8 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForActiveTokenIds(
 		*isActiveNamespace = isPackage;
 	}
 
+	m_sqliteIndexStorage.commitTransaction();
+
 	return g;
 }
 
@@ -1272,6 +1284,9 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForChildrenOfNodeId(Id nodeId)
 	std::vector<Id> edgeIds;
 
 	nodeIds.push_back(nodeId);
+
+	m_sqliteIndexStorage.beginTransaction();
+
 	m_hierarchyCache.addFirstChildIdsForNodeId(nodeId, &nodeIds, &edgeIds);
 
 	std::shared_ptr<Graph> graph = std::make_shared<Graph>();
@@ -1279,6 +1294,8 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForChildrenOfNodeId(Id nodeId)
 	addEdgesToGraph(edgeIds, graph.get());
 
 	addComponentAccessToGraph(graph.get());
+
+	m_sqliteIndexStorage.commitTransaction();
 	return graph;
 }
 
@@ -1603,6 +1620,8 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getSourceLocationsF
 	std::map<Id, FilePath> filePaths;
 	std::vector<Id> nonFileIds;
 
+	m_sqliteIndexStorage.beginTransaction();
+
 	for (const Id tokenId: tokenIds)
 	{
 		FilePath path = getFileNodePath(tokenId);
@@ -1695,6 +1714,8 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getSourceLocationsF
 			}
 		}
 	}
+
+	m_sqliteIndexStorage.commitTransaction();
 
 	addCompleteFlagsToSourceLocationCollection(collection.get());
 
@@ -1829,6 +1850,7 @@ StorageStats PersistentStorage::getStorageStats() const
 
 	StorageStats stats;
 
+	m_sqliteIndexStorage.beginTransaction();
 	stats.nodeCount = m_sqliteIndexStorage.getNodeCount();
 	stats.edgeCount = m_sqliteIndexStorage.getEdgeCount();
 
@@ -1837,6 +1859,7 @@ StorageStats PersistentStorage::getStorageStats() const
 	stats.fileLOCCount = m_sqliteIndexStorage.getFileLineSum();
 
 	stats.timestamp = m_sqliteIndexStorage.getTime();
+	m_sqliteIndexStorage.commitTransaction();
 
 	return stats;
 }

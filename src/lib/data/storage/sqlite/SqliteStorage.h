@@ -21,9 +21,9 @@ public:
 	size_t getVersion() const;
 	void setVersion(size_t version);
 
-	void beginTransaction();
-	void commitTransaction();
-	void rollbackTransaction();
+	void beginTransaction() const;
+	void commitTransaction() const;
+	void rollbackTransaction() const;
 
 	void optimizeMemory() const;
 

@@ -82,17 +82,17 @@ void SqliteStorage::setVersion(size_t version)
 	insertOrUpdateMetaValue("storage_version", std::to_string(version));
 }
 
-void SqliteStorage::beginTransaction()
+void SqliteStorage::beginTransaction() const
 {
 	executeStatement("BEGIN TRANSACTION;");
 }
 
-void SqliteStorage::commitTransaction()
+void SqliteStorage::commitTransaction() const
 {
 	executeStatement("COMMIT TRANSACTION;");
 }
 
-void SqliteStorage::rollbackTransaction()
+void SqliteStorage::rollbackTransaction() const
 {
 	executeStatement("ROLLBACK TRANSACTION;");
 }
