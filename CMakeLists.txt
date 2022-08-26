@@ -139,7 +139,8 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 		message(STATUS "Found LLVM ${LLVM_VERSION}")
 	endif()
 
-	if (UNIX)
+    set(LLVM_CONFIGURATION_TYPES "tools/llvm")
+	if (UNIX OR WIN64)
 		set(LLVM_CONFIGURATION_TYPES ".")
 	endif()
 
@@ -151,6 +152,7 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/lib64/clang/${LLVM_VERSION}/include"
 			)
 			foreach (_CLANG_HEADER_PATH ${_CLANG_HEADERS_SEARCH_LIST})
+                message(STATUS ${_CLANG_HEADER_PATH})
 				if (EXISTS ${_CLANG_HEADER_PATH})
 					set (CLANG_COMPILER_HEADER_SEARCH_PATH ${_CLANG_HEADER_PATH})
 					break ()
@@ -402,8 +404,8 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
             list(APPEND REQ_LLVM_LIBS "LLVM${LLVM_TARGET}CodeGen")
             list(APPEND REQ_LLVM_LIBS "${lib_deps}")
             get_property(lib_deps GLOBAL PROPERTY "LLVMBUILD_LIB_DEPS_LLVM${LLVM_TARGET}AsmParser")
+            list(APPEND REQ_LLVM_LIBS "LLVM${LLVM_TARGET}AsmParser")
             if (NOT "${lib_deps}" STREQUAL "")
-                list(APPEND REQ_LLVM_LIBS "LLVM${LLVM_TARGET}AsmParser")
                 list(APPEND REQ_LLVM_LIBS "${lib_deps}")
             endif()
         endforeach()
@@ -650,6 +652,10 @@ if (APPLE)
 	target_link_libraries(${APP_INDEXER_NAME} ${CORE_FOUNDATION})
 endif ()
 
+if (WIN32)
+    target_link_libraries(${APP_INDEXER_NAME} "bcrypt")
+endif ()
+
 set_property(
 	TARGET ${APP_INDEXER_NAME}
 	PROPERTY INCLUDE_DIRECTORIES
@@ -720,6 +726,10 @@ target_link_libraries(
 	$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_PROJECT_NAME}>
 	${LIB_PROJECT_NAME}
 )
+
+if (WIN32)
+    target_link_libraries(${APP_PROJECT_NAME} "bcrypt")
+endif ()
 
 set_property(
 	TARGET ${APP_PROJECT_NAME}
