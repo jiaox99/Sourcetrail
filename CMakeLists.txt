@@ -330,6 +330,7 @@ endif()
 
 set_source_files_properties(${EXTERNAL_FILES} PROPERTIES COMPILE_FLAGS "-w")
 set_source_files_properties(${EXTERNAL_C_FILES} PROPERTIES COMPILE_FLAGS "-std=gnu89 -w")
+set_source_files_properties(${EXTERNAL_C_FILES} PROPERTIES COMPILE_DEFINITIONS SQLITE_ENABLE_FTS4=1)
 
 add_library(${LIB_PROJECT_NAME} ${LIB_FILES} ${EXTERNAL_FILES} ${EXTERNAL_C_FILES})
 
