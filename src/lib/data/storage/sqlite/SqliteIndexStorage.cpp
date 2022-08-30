@@ -152,6 +152,7 @@ std::vector<Id> SqliteIndexStorage::addNodes(const std::vector<StorageNode>& nod
 	if (nodesToInsert.size())
 	{
 		m_insertNodeBatchStatement.execute(nodesToInsert, this);
+		m_insertNodeFTSBatchStatement.execute(nodesToInsert, this);
 	}
 
 	return nodeIds;
@@ -207,6 +208,10 @@ bool SqliteIndexStorage::addFile(const StorageFile& data)
 		m_insertFileContentStmt.bind(1, int(data.id));
 		m_insertFileContentStmt.bind(2, content->getText().c_str());
 		success = executeStatement(m_insertFileContentStmt);
+
+		m_insertFileContentFTSStmt.bind(1, int(data.id));
+		m_insertFileContentFTSStmt.bind(2, content->getText().c_str());
+		success = success && executeStatement(m_insertFileContentFTSStmt);
 	}
 
 	return success;
@@ -1199,37 +1204,39 @@ int SqliteIndexStorage::tryGetOverviewWithSelect(const std::string& key, const s
 
 int SqliteIndexStorage::getNodeCount(bool fromOverview) const
 {
-	tryGetOverview("node_count", "node", fromOverview);
+	return tryGetOverview("node_count", "node", fromOverview);
 }
 
 int SqliteIndexStorage::getEdgeCount(bool fromOverview) const
 {
-	tryGetOverview("edge_count", "edge", fromOverview);
+	return tryGetOverview("edge_count", "edge", fromOverview);
 }
 
 int SqliteIndexStorage::getFileCount(bool fromOverview) const
 {
-	tryGetOverview("file_count", "file WHERE indexed=1", fromOverview);
+	return tryGetOverview("file_count", "file WHERE indexed=1", fromOverview);
 }
 
 int SqliteIndexStorage::getCompletedFileCount(bool fromOverview) const
 {
-	tryGetOverview("file_count", "file WHERE indexed=1 AND complete=1", fromOverview);
+	return tryGetOverview("file_count", "file WHERE indexed=1 AND complete=1", fromOverview);
 }
 
 int SqliteIndexStorage::getFileLineSum(bool fromOverview) const
 {
-	tryGetOverviewWithSelect("file_line_sum", "SELECT SUM(line_count) FROM file;", fromOverview);
+	return tryGetOverviewWithSelect(
+		"file_line_sum", "SELECT SUM(line_count) FROM file;", fromOverview);
 }
 
 int SqliteIndexStorage::getSourceLocationCount(bool fromOverview) const
 {
-	tryGetOverview("source_location_count", "source_location", fromOverview);
+	return tryGetOverview("source_location_count", "source_location", fromOverview);
 }
 
 int SqliteIndexStorage::getErrorCount(bool fromOverview) const
 {
-	tryGetOverview("error_count", "error INNER JOIN occurrence ON (error.id=occurrence.element_id)", fromOverview);
+	return tryGetOverview(
+		"error_count", "error INNER JOIN occurrence ON (error.id=occurrence.element_id)", fromOverview);
 }
 
 void SqliteIndexStorage::resetOverview()
@@ -1349,6 +1356,8 @@ void SqliteIndexStorage::setupTables()
 			"PRIMARY KEY(id), "
 			"FOREIGN KEY(id) REFERENCES element(id) ON DELETE CASCADE);");
 
+		m_database.execDML("CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts4(id, serialized_name);");
+
 		m_database.execDML(
 			"CREATE TABLE IF NOT EXISTS symbol("
 			"id INTEGER NOT NULL, "
@@ -1369,13 +1378,15 @@ void SqliteIndexStorage::setupTables()
 			"FOREIGN KEY(id) REFERENCES node(id) ON DELETE CASCADE);");
 
 		m_database.execDML(
-			"CREATE VIRTUAL TABLE IF NOT EXISTS filecontent using fts4("
+			"CREATE TABLE IF NOT EXISTS filecontent("
 			"id INTEGER, "
 			"content TEXT, "
 			"PRIMARY KEY(id), "
 			"FOREIGN KEY(id) REFERENCES file(id)"
 			"ON DELETE CASCADE "
 			"ON UPDATE CASCADE);");
+
+		m_database.execDML("CREATE VIRTUAL TABLE IF NOT EXISTS filecontent_fts using fts4(id, content)");
 
 		m_database.execDML(
 			"CREATE TABLE IF NOT EXISTS local_symbol("
@@ -1450,6 +1461,15 @@ void SqliteIndexStorage::setupPrecompiledStatements()
 				stmt.bind(int(index) * 3 + 3, utility::encodeToUtf8(node.serializedName).c_str());
 			},
 			m_database);
+		m_insertNodeFTSBatchStatement.compile(
+			"INSERT INTO node_fts(id, serialized_name) VALUES",
+			2,
+			[](CppSQLite3Statement& stmt, const StorageNode& node, size_t index)
+			{
+				stmt.bind(int(index) * 2 + 1, int(node.id));
+				stmt.bind(int(index) * 2 + 2, utility::encodeToUtf8(node.serializedName).c_str());
+			},
+			m_database);
 		m_insertEdgeBatchStatement.compile(
 			"INSERT INTO edge(id, type, source_node_id, target_node_id) VALUES",
 			4,
@@ -1514,6 +1534,8 @@ void SqliteIndexStorage::setupPrecompiledStatements()
 			"line_count) VALUES(?, ?, ?, ?, ?, ?, ?);");
 		m_insertFileContentStmt = m_database.compileStatement(
 			"INSERT INTO filecontent(id, content) VALUES(?, ?);");
+		m_insertFileContentFTSStmt = m_database.compileStatement(
+			"INSERT INTO filecontent_fts(id, content) VALUES(?, ?);");
 		m_checkErrorExistsStmt = m_database.compileStatement(
 			"SELECT id FROM error WHERE "
 			"message = ? AND "

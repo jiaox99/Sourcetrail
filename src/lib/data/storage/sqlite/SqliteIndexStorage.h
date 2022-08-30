@@ -360,6 +360,7 @@ private:
 	};
 
 	InsertBatchStatement<StorageNode> m_insertNodeBatchStatement;
+	InsertBatchStatement<StorageNode> m_insertNodeFTSBatchStatement;
 	InsertBatchStatement<StorageEdge> m_insertEdgeBatchStatement;
 	InsertBatchStatement<StorageSymbol> m_insertSymbolBatchStatement;
 	InsertBatchStatement<StorageLocalSymbol> m_insertLocalSymbolBatchStatement;
@@ -371,6 +372,7 @@ private:
 	CppSQLite3Statement m_insertElementComponentStmt;
 	CppSQLite3Statement m_insertFileStmt;
 	CppSQLite3Statement m_insertFileContentStmt;
+	CppSQLite3Statement m_insertFileContentFTSStmt;
 	CppSQLite3Statement m_checkErrorExistsStmt;
 	CppSQLite3Statement m_insertErrorStmt;
 };
