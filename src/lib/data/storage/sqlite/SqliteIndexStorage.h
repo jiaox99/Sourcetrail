@@ -101,8 +101,11 @@ public:
 	StorageNode getNodeById(Id id) const;
 	StorageNode getNodeBySerializedName(const std::wstring& serializedName) const;
 
-	std::vector<int> getAvailableNodeTypes() const;
-	std::vector<int> getAvailableEdgeTypes() const;
+	void tryGetOrUpdateEnummasks(std::vector<int>& types,const std::string& key,const std::string& table,bool fromOverview) const;
+	void getElementTypes(std::vector<int>& types, const std::string& table) const;
+
+	std::vector<int> getAvailableNodeTypes(bool fromOverview = false) const;
+	std::vector<int> getAvailableEdgeTypes(bool fromOverview = false) const;
 
 	StorageFile getFileByPath(const std::wstring& filePath) const;
 
@@ -185,13 +188,17 @@ public:
 		}
 	}
 
-	int getNodeCount() const;
-	int getEdgeCount() const;
-	int getFileCount() const;
-	int getCompletedFileCount() const;
-	int getFileLineSum() const;
-	int getSourceLocationCount() const;
-	int getErrorCount() const;
+	int tryGetOverview(const std::string& key, const std::string& table, bool fromOverview = false) const;
+	int tryGetOverviewWithSelect(const std::string& key, const std::string& select, bool fromOverview = false) const;
+	int getNodeCount(bool fromOverview = false) const;
+	int getEdgeCount(bool fromOverview = false) const;
+	int getFileCount(bool fromOverview = false) const;
+	int getCompletedFileCount(bool fromOverview = false) const;
+	int getFileLineSum(bool fromOverview = false) const;
+	int getSourceLocationCount(bool fromOverview = false) const;
+	int getErrorCount(bool fromOverview = false) const;
+
+	void resetOverview();
 
 private:
 	static const size_t s_storageVersion;

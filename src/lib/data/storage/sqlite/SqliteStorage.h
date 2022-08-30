@@ -35,6 +35,8 @@ public:
 	void setTime();
 	TimeStamp getTime() const;
 
+	void insertOrUpdateOverviewValue(const std::string& key, const long value) const;
+
 protected:
 	void setupMetaTable();
 	void clearMetaTable();

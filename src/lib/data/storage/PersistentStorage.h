@@ -78,6 +78,7 @@ public:
 	void updateVersion();
 	void clear();
 	void clearCaches();
+	void updateOverview();
 
 	std::set<FilePath> getReferenced(const std::set<FilePath>& filePaths) const;
 	std::set<FilePath> getReferencing(const std::set<FilePath>& filePaths) const;

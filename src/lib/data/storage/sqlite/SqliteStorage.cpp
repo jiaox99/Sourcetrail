@@ -197,7 +197,7 @@ bool SqliteStorage::executeStatement(CppSQLite3Statement& statement) const
 
 int SqliteStorage::executeStatementScalar(const std::string& statement, const int nullValue) const
 {
-	int ret = 0;
+	int ret = nullValue;
 	try
 	{
 		ret = m_database.execScalar(statement.c_str(), nullValue);
@@ -211,7 +211,7 @@ int SqliteStorage::executeStatementScalar(const std::string& statement, const in
 
 int SqliteStorage::executeStatementScalar(CppSQLite3Statement& statement, const int nullValue) const
 {
-	int ret = 0;
+	int ret = nullValue;
 	try
 	{
 		CppSQLite3Query q = executeQuery(statement);
@@ -297,5 +297,19 @@ void SqliteStorage::insertOrUpdateMetaValue(const std::string& key, const std::s
 	stmt.bind(1, key.c_str());
 	stmt.bind(2, key.c_str());
 	stmt.bind(3, value.c_str());
+	executeStatement(stmt);
+}
+
+void SqliteStorage::insertOrUpdateOverviewValue(const std::string& key, const long value) const
+{
+	CppSQLite3Statement stmt = m_database.compileStatement(
+		std::string("INSERT OR REPLACE INTO overview(id, key, value) VALUES("
+					"(SELECT id FROM overview WHERE key = ?), ?, ?"
+					");")
+			.c_str());
+
+	stmt.bind(1, key.c_str());
+	stmt.bind(2, key.c_str());
+	stmt.bind(3, value);
 	executeStatement(stmt);
 }

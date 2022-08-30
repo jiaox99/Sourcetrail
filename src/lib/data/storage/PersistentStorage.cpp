@@ -366,6 +366,23 @@ void PersistentStorage::clearCaches()
 	m_fullTextSearchCodec = "";
 }
 
+void PersistentStorage::updateOverview()
+{
+	/*m_sqliteIndexStorage.resetOverview();
+
+	m_sqliteIndexStorage.beginTransaction();
+
+	m_sqliteIndexStorage.getNodeCount(true);
+	m_sqliteIndexStorage.getEdgeCount(true);
+	m_sqliteIndexStorage.getFileCount(true);
+	m_sqliteIndexStorage.getCompletedFileCount(true);
+	m_sqliteIndexStorage.getFileLineSum(true);
+	m_sqliteIndexStorage.getSourceLocationCount(true);
+	m_sqliteIndexStorage.getErrorCount(true);
+
+	m_sqliteIndexStorage.commitTransaction();*/
+}
+
 std::set<FilePath> PersistentStorage::getReferenced(const std::set<FilePath>& filePaths) const
 {
 	TRACE();
@@ -1851,14 +1868,19 @@ StorageStats PersistentStorage::getStorageStats() const
 	StorageStats stats;
 
 	m_sqliteIndexStorage.beginTransaction();
-	stats.nodeCount = m_sqliteIndexStorage.getNodeCount();
-	stats.edgeCount = m_sqliteIndexStorage.getEdgeCount();
 
-	stats.fileCount = m_sqliteIndexStorage.getFileCount();
-	stats.completedFileCount = m_sqliteIndexStorage.getCompletedFileCount();
-	stats.fileLOCCount = m_sqliteIndexStorage.getFileLineSum();
+	stats.nodeCount = m_sqliteIndexStorage.getNodeCount(true);
+	stats.edgeCount = m_sqliteIndexStorage.getEdgeCount(true);
+
+	stats.fileCount = m_sqliteIndexStorage.getFileCount(true);
+	stats.completedFileCount = m_sqliteIndexStorage.getCompletedFileCount(true);
+	stats.fileLOCCount = m_sqliteIndexStorage.getFileLineSum(true);
+
+	m_sqliteIndexStorage.getErrorCount(true);
+	m_sqliteIndexStorage.getSourceLocationCount(true);
 
 	stats.timestamp = m_sqliteIndexStorage.getTime();
+
 	m_sqliteIndexStorage.commitTransaction();
 
 	return stats;

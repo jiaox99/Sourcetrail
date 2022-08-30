@@ -809,24 +809,63 @@ void splitEnums(int value, int bits, std::vector<int>& types)
 	}
 }
 
-std::vector<int> SqliteIndexStorage::getAvailableNodeTypes() const
+void SqliteIndexStorage::tryGetOrUpdateEnummasks(
+	std::vector<int>& types, const std::string& key, const std::string& table, bool fromOverview) const
 {
-	int nodeTypes= executeStatementScalar("SELECT node_types type FROM overview;", 0);
+	if (fromOverview)
+	{
+		int nodeTypes = executeStatementScalar("SELECT " + key + " type FROM overview;", 0);
+		if (nodeTypes > 0)
+		{
+			splitEnums(nodeTypes, 32, types);
+			return;
+		}
+	}
 
+	getElementTypes(types, table);
+
+	if (fromOverview)
+	{
+		int nodeTypes = 0;
+		for (int i = 0; i < types.size(); i++)
+		{
+			nodeTypes |= types[i];
+		}
+
+		insertOrUpdateOverviewValue(key, nodeTypes);
+	}
+}
+
+void SqliteIndexStorage::getElementTypes(
+	std::vector<int>& types, const std::string& table) const
+{
+	CppSQLite3Query q = executeQuery("SELECT DISTINCT type FROM " + table + ";");
+	while (!q.eof())
+	{
+		const int type = q.getIntField(0, -1);
+		if (type != -1)
+		{
+			types.push_back(type);
+		}
+
+		q.nextRow();
+	}
+}
+
+std::vector<int> SqliteIndexStorage::getAvailableNodeTypes(bool fromOverview) const
+{
 	std::vector<int> types;
 
-	splitEnums(nodeTypes, 32, types);
+	tryGetOrUpdateEnummasks(types, "node_types", "node", fromOverview);
 
 	return types;
 }
 
-std::vector<int> SqliteIndexStorage::getAvailableEdgeTypes() const
+std::vector<int> SqliteIndexStorage::getAvailableEdgeTypes(bool fromOverview) const
 {
-	int edgeTypes = executeStatementScalar("SELECT edge_types type FROM overview;", 0);
-
 	std::vector<int> types;
 
-	splitEnums(edgeTypes, 32, types);
+	tryGetOrUpdateEnummasks(types, "edge_types", "edge", fromOverview);
 
 	return types;
 }
@@ -1118,39 +1157,84 @@ std::vector<ErrorInfo> SqliteIndexStorage::getAllErrorInfos() const
 	return errorInfos;
 }
 
-int SqliteIndexStorage::getNodeCount() const
+int SqliteIndexStorage::tryGetOverview(const std::string& key, const std::string& table, bool fromOverview) const
 {
-	return executeStatementScalar("SELECT node_count FROM overview;", 0);
+	int value = 0;
+	if (fromOverview)
+	{
+		value = executeStatementScalar("SELECT value FROM overview WHERE key='" + key + "';", -1);
+		if (value >= 0)
+		{
+			return value;
+		}
+	}
+
+	value = executeStatementScalar("SELECT COUNT(*) FROM " + table + ";", 0);
+	if (fromOverview)
+	{
+		insertOrUpdateOverviewValue(key, value);
+	}
+	return value;
 }
 
-int SqliteIndexStorage::getEdgeCount() const
+int SqliteIndexStorage::tryGetOverviewWithSelect(const std::string& key, const std::string& select, bool fromOverview) const
 {
-	return executeStatementScalar("SELECT edge_count FROM overview;", 0);
+	int value = 0;
+	if (fromOverview)
+	{
+		value = executeStatementScalar("SELECT value FROM overview WHERE key='" + key + "';", -1);
+		if (value >= 0)
+		{
+			return value;
+		}
+	}
+
+	value = executeStatementScalar(select, 0);
+	if (fromOverview)
+	{
+		insertOrUpdateOverviewValue(key, value);
+	}
+	return value;
 }
 
-int SqliteIndexStorage::getFileCount() const
+int SqliteIndexStorage::getNodeCount(bool fromOverview) const
 {
-	return executeStatementScalar("SELECT file_count FROM overview;", 0);
+	tryGetOverview("node_count", "node", fromOverview);
 }
 
-int SqliteIndexStorage::getCompletedFileCount() const
+int SqliteIndexStorage::getEdgeCount(bool fromOverview) const
 {
-	return executeStatementScalar("SELECT completed_file_count FROM overview;", 0);
+	tryGetOverview("edge_count", "edge", fromOverview);
 }
 
-int SqliteIndexStorage::getFileLineSum() const
+int SqliteIndexStorage::getFileCount(bool fromOverview) const
 {
-	return executeStatementScalar("SELECT file_line_sum FROM overview;", 0);
+	tryGetOverview("file_count", "file WHERE indexed=1", fromOverview);
 }
 
-int SqliteIndexStorage::getSourceLocationCount() const
+int SqliteIndexStorage::getCompletedFileCount(bool fromOverview) const
 {
-	return executeStatementScalar("SELECT source_location_count FROM overview;", 0);
+	tryGetOverview("file_count", "file WHERE indexed=1 AND complete=1", fromOverview);
 }
 
-int SqliteIndexStorage::getErrorCount() const
+int SqliteIndexStorage::getFileLineSum(bool fromOverview) const
 {
-	return executeStatementScalar("SELECT error_count FROM overview;", 0);
+	tryGetOverviewWithSelect("file_line_sum", "SELECT SUM(line_count) FROM file;", fromOverview);
+}
+
+int SqliteIndexStorage::getSourceLocationCount(bool fromOverview) const
+{
+	tryGetOverview("source_location_count", "source_location", fromOverview);
+}
+
+int SqliteIndexStorage::getErrorCount(bool fromOverview) const
+{
+	tryGetOverview("error_count", "error INNER JOIN occurrence ON (error.id=occurrence.element_id)", fromOverview);
+}
+
+void SqliteIndexStorage::resetOverview()
+{
+	executeStatement("DELETE FROM overview;");
 }
 
 std::vector<std::pair<int, SqliteDatabaseIndex>> SqliteIndexStorage::getIndices() const
@@ -1285,7 +1369,7 @@ void SqliteIndexStorage::setupTables()
 			"FOREIGN KEY(id) REFERENCES node(id) ON DELETE CASCADE);");
 
 		m_database.execDML(
-			"CREATE TABLE IF NOT EXISTS filecontent("
+			"CREATE VIRTUAL TABLE IF NOT EXISTS filecontent using fts4("
 			"id INTEGER, "
 			"content TEXT, "
 			"PRIMARY KEY(id), "
@@ -1336,6 +1420,14 @@ void SqliteIndexStorage::setupTables()
 			"translation_unit TEXT, "
 			"PRIMARY KEY(id), "
 			"FOREIGN KEY(id) REFERENCES element(id) ON DELETE CASCADE);");
+
+		m_database.execDML(
+			"CREATE TABLE IF NOT EXISTS overview ("
+			"id INTEGER, "
+			"key TEXT, "
+			"value INTEGER, "
+			"PRIMARY KEY(id)"
+			");");
 	}
 	catch (CppSQLite3Exception& e)
 	{
