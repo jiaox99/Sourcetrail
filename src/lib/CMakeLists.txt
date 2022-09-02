@@ -137,6 +137,8 @@ add_files(
 
 	data/fulltextsearch/FullTextSearchIndex.cpp
 	data/fulltextsearch/FullTextSearchIndex.h
+    data/fulltextsearch/SqliteFullTextSearchIndex.cpp
+	data/fulltextsearch/SqliteFullTextSearchIndex.h
 	data/fulltextsearch/SuffixArray.cpp
 	data/fulltextsearch/SuffixArray.h
 
