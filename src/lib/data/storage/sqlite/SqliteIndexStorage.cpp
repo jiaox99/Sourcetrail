@@ -10,6 +10,7 @@
 #include "TextAccess.h"
 #include "logging.h"
 #include "utilityString.h"
+#include <sstream>
 
 const size_t SqliteIndexStorage::s_storageVersion = 25;
 
@@ -183,11 +184,10 @@ bool SqliteIndexStorage::addFile(const StorageFile& data)
 		modificationTime = FileSystem::getFileInfoForPath(filePath).lastWriteTime.toString();
 	}
 
-	std::shared_ptr<TextAccess> content;
+	std::shared_ptr<TextAccess> content = TextAccess::createFromFile(filePath);
 	int lineCount = 0;
 	if (data.indexed)
 	{
-		content = TextAccess::createFromFile(filePath);
 		lineCount = content->getLineCount();
 	}
 
@@ -203,16 +203,16 @@ bool SqliteIndexStorage::addFile(const StorageFile& data)
 		success = executeStatement(m_insertFileStmt);
 	}
 
-	if (success && content)
+	if (success && data.indexed)
 	{
 		m_insertFileContentStmt.bind(1, int(data.id));
 		m_insertFileContentStmt.bind(2, content->getText().c_str());
 		success = executeStatement(m_insertFileContentStmt);
-
-		m_insertFileContentFTSStmt.bind(1, int(data.id));
-		m_insertFileContentFTSStmt.bind(2, content->getText().c_str());
-		success = success && executeStatement(m_insertFileContentFTSStmt);
 	}
+
+	m_insertFileContentFTSStmt.bind(1, int(data.id));
+	m_insertFileContentFTSStmt.bind(2, content->getText().c_str());
+	success = success && executeStatement(m_insertFileContentFTSStmt);
 
 	return success;
 }
@@ -1356,7 +1356,7 @@ void SqliteIndexStorage::setupTables()
 			"PRIMARY KEY(id), "
 			"FOREIGN KEY(id) REFERENCES element(id) ON DELETE CASCADE);");
 
-		m_database.execDML("CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts4(id, serialized_name);");
+		m_database.execDML("CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts4(serialized_name);");
 
 		m_database.execDML(
 			"CREATE TABLE IF NOT EXISTS symbol("
@@ -1386,7 +1386,7 @@ void SqliteIndexStorage::setupTables()
 			"ON DELETE CASCADE "
 			"ON UPDATE CASCADE);");
 
-		m_database.execDML("CREATE VIRTUAL TABLE IF NOT EXISTS filecontent_fts using fts4(id, content)");
+		m_database.execDML("CREATE VIRTUAL TABLE IF NOT EXISTS filecontent_fts using fts4(content)");
 
 		m_database.execDML(
 			"CREATE TABLE IF NOT EXISTS local_symbol("
@@ -1462,7 +1462,7 @@ void SqliteIndexStorage::setupPrecompiledStatements()
 			},
 			m_database);
 		m_insertNodeFTSBatchStatement.compile(
-			"INSERT INTO node_fts(id, serialized_name) VALUES",
+			"INSERT OR IGNORE INTO node_fts(docid, serialized_name) VALUES",
 			2,
 			[](CppSQLite3Statement& stmt, const StorageNode& node, size_t index)
 			{
@@ -1533,9 +1533,9 @@ void SqliteIndexStorage::setupPrecompiledStatements()
 			"INSERT INTO file(id, path, language, modification_time, indexed, complete, "
 			"line_count) VALUES(?, ?, ?, ?, ?, ?, ?);");
 		m_insertFileContentStmt = m_database.compileStatement(
-			"INSERT INTO filecontent(id, content) VALUES(?, ?);");
+			"INSERT OR IGNORE INTO filecontent(id, content) VALUES(?, ?);");
 		m_insertFileContentFTSStmt = m_database.compileStatement(
-			"INSERT INTO filecontent_fts(id, content) VALUES(?, ?);");
+			"INSERT OR IGNORE INTO filecontent_fts(docid, content) VALUES(?, ?);");
 		m_checkErrorExistsStmt = m_database.compileStatement(
 			"SELECT id FROM error WHERE "
 			"message = ? AND "
@@ -1553,6 +1553,62 @@ void SqliteIndexStorage::setupPrecompiledStatements()
 
 		// todo: cancel project creation and destroy created files, display message
 	}
+}
+
+bool SqliteIndexStorage::addFTSFileContent(const Id id, const std::string& data)
+{	
+	m_insertFileContentFTSStmt.bind(1, int(id));
+	m_insertFileContentFTSStmt.bind(2, data.c_str());
+	return executeStatement(m_insertFileContentFTSStmt);
+}
+
+std::vector<std::vector<int>> SqliteIndexStorage::queryFTSFileContentOffsets(const std::string& query)
+{
+	std::vector<std::vector<int>> offsets;
+	CppSQLite3Query q = executeQuery(
+		"select offsets(filecontent_fts) from filecontent_fts where content match \"" + query + "*\"");
+	while (!q.eof())
+	{
+		std::vector<int> offset;
+		std::istringstream ss(q.getStringField(0));
+		std::string token;
+		int count = 0;
+		while (std::getline(ss, token, ' '))
+		{
+			if (((count + 1) % 3) == 0)
+			{
+				offset.push_back(std::stoi(token));
+			}
+			count++;
+		}
+
+		offsets.push_back(offset);
+
+		q.nextRow();
+	}
+
+	return offsets;
+}
+
+std::vector<int> SqliteIndexStorage::queryFTSFileContentIds(const std::string& query)
+{
+	std::vector<int> ids;
+	CppSQLite3Query q = executeQuery(
+		"select docid from filecontent_fts where content match \"" + query +
+		"*\"");
+	while (!q.eof())
+	{
+		ids.push_back(q.getIntField(0, 0));
+
+		q.nextRow();
+	}
+
+	return ids;
+}
+
+bool SqliteIndexStorage::clearFTSFileContent()
+{
+	return executeStatement("delete from filecontent_fts;");
 }
 
 template <>

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "FullTextSearchIndex.h"
+#include "SqliteFullTextSearchIndex.h"
 #include "HierarchyCache.h"
 #include "SearchIndex.h"
 #include "SqliteBookmarkStorage.h"
@@ -271,6 +272,7 @@ private:
 	SearchIndex m_fileIndex;
 
 	mutable FullTextSearchIndex m_fullTextSearchIndex;
+	mutable SqliteFullTextSearchIndex m_sqliteFullTextSearchIndex;
 	mutable std::string m_fullTextSearchCodec;
 	mutable std::mutex m_fullTextSearchMutex;
 

@@ -45,6 +45,8 @@ PersistentStorage::PersistentStorage(const FilePath& dbPath, const FilePath& boo
 	}
 
 	m_commandIndex.finishSetup();
+
+	m_sqliteFullTextSearchIndex.setStorage(&m_sqliteIndexStorage);
 }
 
 std::pair<Id, bool> PersistentStorage::addNode(const StorageNodeData& data)
@@ -624,7 +626,7 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getFullTextSearchLo
 		if (m_fullTextSearchCodec != codec.getName())
 		{
 			MessageStatus(L"Building fulltext search index", false, true).dispatch();
-			buildFullTextSearchIndex();
+			//buildFullTextSearchIndex();
 		}
 	}
 
@@ -639,7 +641,7 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getFullTextSearchLo
 		std::vector<std::shared_ptr<std::thread>> threads;
 		std::mutex collectionMutex;
 		for (std::vector<FullTextSearchResult> fileResults: utility::splitToEquallySizedParts(
-				 m_fullTextSearchIndex.searchForTerm(searchTerm), utility::getIdealThreadCount()))
+				 m_sqliteFullTextSearchIndex.searchForTerm(searchTerm), utility::getIdealThreadCount()))
 		{
 			std::shared_ptr<std::thread> thread = std::make_shared<std::thread>(
 				[this,
@@ -3379,7 +3381,8 @@ void PersistentStorage::buildFullTextSearchIndex() const
 
 	m_fullTextSearchCodec = codec.getName();
 
-	m_fullTextSearchIndex.clear();
+	//m_fullTextSearchIndex.clear();
+	m_sqliteFullTextSearchIndex.clear();
 
 	std::vector<std::shared_ptr<std::thread>> threads;
 	{
@@ -3398,9 +3401,12 @@ void PersistentStorage::buildFullTextSearchIndex() const
 				[&](const std::vector<StorageFile>& files) {
 					for (const StorageFile& file: files)
 					{
-						m_fullTextSearchIndex.addFile(
+						/*m_fullTextSearchIndex.addFile(
 							file.id,
-							codec.decode(m_sqliteIndexStorage.getFileContentById(file.id)->getText()));
+							codec.decode(m_sqliteIndexStorage.getFileContentByPath(file.filePath)->getText()));*/
+						m_sqliteFullTextSearchIndex.addFile(
+							file.id,
+							m_sqliteIndexStorage.getFileContentByPath(file.filePath)->getText());
 					}
 				},
 				part);
