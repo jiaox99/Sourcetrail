@@ -1535,7 +1535,7 @@ void SqliteIndexStorage::setupPrecompiledStatements()
 		m_insertFileContentStmt = m_database.compileStatement(
 			"INSERT OR IGNORE INTO filecontent(id, content) VALUES(?, ?);");
 		m_insertFileContentFTSStmt = m_database.compileStatement(
-			"INSERT OR IGNORE INTO filecontent_fts(docid, content) VALUES(?, ?);");
+			"INSERT OR REPLACE INTO filecontent_fts(docid, content) VALUES(?, ?);");
 		m_checkErrorExistsStmt = m_database.compileStatement(
 			"SELECT id FROM error WHERE "
 			"message = ? AND "
