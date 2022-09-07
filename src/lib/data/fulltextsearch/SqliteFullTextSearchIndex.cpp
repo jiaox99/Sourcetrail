@@ -20,13 +20,19 @@ std::vector<FullTextSearchResult> SqliteFullTextSearchIndex::searchForTerm(const
 	std::vector<FullTextSearchResult> ret;
 	{
 		const std::string _term(term.begin(), term.end());
-		std::vector<std::vector<int>> offsets = m_sqliteIndexStorage->queryFTSFileContentOffsets(_term);
-		std::vector<int> ids = m_sqliteIndexStorage->queryFTSFileContentIds(_term);
-		for (int i = 0; i < ids.size(); i++)
+		std::vector<std::vector<long>> offsets = m_sqliteIndexStorage->queryFTSFileContentOffsets(
+			_term);
+		for (int i = 0; i < offsets.size(); i++)
 		{
 			FullTextSearchResult hit;
-			hit.fileId = ids[i];
-			hit.positions = offsets[i];
+			std::vector<long> offset = offsets[i];
+
+			hit.fileId = offset[0];
+
+			for (int j = 1; j < offset.size(); j++)
+			{
+				hit.positions.push_back(offset[j]);
+			}
 
 			ret.push_back(hit);
 		}

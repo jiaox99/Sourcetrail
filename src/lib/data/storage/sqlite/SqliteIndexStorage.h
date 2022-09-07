@@ -56,8 +56,7 @@ public:
 	bool addSymbols(const std::vector<StorageSymbol>& symbols);
 	bool addFile(const StorageFile& data);
 	bool addFTSFileContent(const Id id, const std::string& data);
-	std::vector<std::vector<int>> queryFTSFileContentOffsets(const std::string& query);
-	std::vector<int> queryFTSFileContentIds(const std::string& query);
+	std::vector<std::vector<long>> queryFTSFileContentOffsets(const std::string& query);
 	bool clearFTSFileContent();
 	Id addEdge(const StorageEdgeData& data);
 	std::vector<Id> addEdges(const std::vector<StorageEdge>& edges);

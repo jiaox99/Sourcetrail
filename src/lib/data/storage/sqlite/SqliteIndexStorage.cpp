@@ -1562,22 +1562,23 @@ bool SqliteIndexStorage::addFTSFileContent(const Id id, const std::string& data)
 	return executeStatement(m_insertFileContentFTSStmt);
 }
 
-std::vector<std::vector<int>> SqliteIndexStorage::queryFTSFileContentOffsets(const std::string& query)
+std::vector<std::vector<long>> SqliteIndexStorage::queryFTSFileContentOffsets(const std::string& query)
 {
-	std::vector<std::vector<int>> offsets;
+	std::vector<std::vector<long>> offsets;
 	CppSQLite3Query q = executeQuery(
-		"select offsets(filecontent_fts) from filecontent_fts where content match \"" + query + "*\"");
+		"select docid, offsets(filecontent_fts) from filecontent_fts where content match \"" + query + "*\"");
 	while (!q.eof())
 	{
-		std::vector<int> offset;
-		std::istringstream ss(q.getStringField(0));
+		std::vector<long> offset;
+		offset.push_back(q.getInt64Field(0));
+		std::istringstream ss(q.getStringField(1));
 		std::string token;
 		int count = 0;
 		while (std::getline(ss, token, ' '))
 		{
 			if (((count + 1) % 3) == 0)
 			{
-				offset.push_back(std::stoi(token));
+				offset.push_back(std::stol(token));
 			}
 			count++;
 		}
@@ -1588,22 +1589,6 @@ std::vector<std::vector<int>> SqliteIndexStorage::queryFTSFileContentOffsets(con
 	}
 
 	return offsets;
-}
-
-std::vector<int> SqliteIndexStorage::queryFTSFileContentIds(const std::string& query)
-{
-	std::vector<int> ids;
-	CppSQLite3Query q = executeQuery(
-		"select docid from filecontent_fts where content match \"" + query +
-		"*\"");
-	while (!q.eof())
-	{
-		ids.push_back(q.getIntField(0, 0));
-
-		q.nextRow();
-	}
-
-	return ids;
 }
 
 bool SqliteIndexStorage::clearFTSFileContent()
