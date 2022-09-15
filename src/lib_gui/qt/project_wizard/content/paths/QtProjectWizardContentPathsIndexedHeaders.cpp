@@ -68,11 +68,12 @@ std::vector<FilePath> QtProjectWizardContentPathsIndexedHeaders::getIndexedPaths
 		const FilePath cdbPath = settings->getCompilationDatabasePathExpandedAndAbsolute();
 		if (!cdbPath.empty() && cdbPath.exists())
 		{
-			for (const FilePath& path: IndexerCommandCxx::getSourceFilesFromCDB(cdbPath))
+			utility::CompilationDatabase uCdb(cdbPath);
+			for (const FilePath& path: IndexerCommandCxx::getSourceFilesFromCDB(uCdb.getSharedCDB(), cdbPath))
 			{
 				indexedHeaderPaths.insert(path.getCanonical().getParentDirectory());
 			}
-			for (const FilePath& path: utility::CompilationDatabase(cdbPath).getAllHeaderPaths())
+			for (const FilePath& path: uCdb.getAllHeaderPaths())
 			{
 				if (path.exists())
 				{

@@ -37,6 +37,16 @@ std::vector<FilePath> utility::CompilationDatabase::getFrameworkHeaderPaths() co
 	return m_frameworkHeaders;
 }
 
+clang::tooling::JSONCompilationDatabase* utility::CompilationDatabase::getCDB() const
+{
+	return m_cdb.get();
+}
+
+std::shared_ptr<clang::tooling::JSONCompilationDatabase> utility::CompilationDatabase::getSharedCDB() const
+{
+	return m_cdb;
+}
+
 void utility::CompilationDatabase::init()
 {
 	std::string error;
@@ -53,6 +63,8 @@ void utility::CompilationDatabase::init()
 			L"\" failed with error: " + utility::decodeFromUtf8(error));
 		return;
 	}
+
+	m_cdb = cdb;
 
 	std::vector<clang::tooling::CompileCommand> commands = cdb->getAllCompileCommands();
 	std::set<FilePath> frameworkHeaders;
