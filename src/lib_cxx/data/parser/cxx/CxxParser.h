@@ -31,6 +31,7 @@ public:
 	static std::vector<std::string> getCommandlineArgumentsEssential(
 		const std::vector<std::wstring>& compilerFlags);
 	static void initializeLLVM();
+	static void setupIgnoreCompilerFlags();
 
 	CxxParser(
 		std::shared_ptr<ParserClient> client,

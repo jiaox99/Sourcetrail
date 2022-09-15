@@ -8,6 +8,8 @@ void IndexerCxx::doIndex(
 	std::shared_ptr<ParserClientImpl> parserClient,
 	std::shared_ptr<IndexerStateInfo> m_indexerStateInfo)
 {
+	CxxParser::setupIgnoreCompilerFlags();
+
 	CxxParser parser(
 		parserClient,
 		std::make_shared<FileRegister>(
