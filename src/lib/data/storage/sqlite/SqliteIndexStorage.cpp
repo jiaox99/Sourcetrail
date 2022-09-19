@@ -1236,7 +1236,12 @@ int SqliteIndexStorage::getSourceLocationCount(bool fromOverview) const
 int SqliteIndexStorage::getErrorCount(bool fromOverview) const
 {
 	return tryGetOverview(
-		"error_count", "error INNER JOIN occurrence ON (error.id=occurrence.element_id)", fromOverview);
+		"error_count", "error", fromOverview);
+}
+
+int SqliteIndexStorage::getFatalErrorCount(bool fromOverview) const
+{
+	return tryGetOverview("fatal_error_count", "error WHERE fatal=1", fromOverview);
 }
 
 void SqliteIndexStorage::resetOverview()

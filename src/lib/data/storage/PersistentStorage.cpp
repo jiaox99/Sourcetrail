@@ -1055,35 +1055,43 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForAll() const
 	TRACE();
 
 	std::shared_ptr<Graph> graph = std::make_shared<Graph>();
-	const size_t sdk_size = m_symbolDefinitionKinds.size();
-	m_sqliteIndexStorage.beginTransaction();
-	m_sqliteIndexStorage.forEach<StorageNode>([&, sdk_size](StorageNode&& storageNode) {
-		const NodeType type(intToNodeKind(storageNode.type));
-		if (type.isFile())
-		{
-			auto fn_it = m_fileNodeIndexed.find(storageNode.id);
-			if (fn_it != m_fileNodeIndexed.end() && fn_it->second)
+	const int nodeCount = m_sqliteIndexStorage.getNodeCount(true);
+	if (nodeCount < 100000)
+	{
+		const size_t sdk_size = m_symbolDefinitionKinds.size();
+		m_sqliteIndexStorage.beginTransaction();
+		m_sqliteIndexStorage.forEach<StorageNode>(
+			[&, sdk_size](StorageNode&& storageNode)
 			{
-				addFileNodeToGraph(storageNode, graph.get());
-			}
-		}
-		else
-		{
-			bool showNode = true;
-			if (sdk_size)
-			{
-				auto it = m_symbolDefinitionKinds.find(storageNode.id);
-				showNode = (it != m_symbolDefinitionKinds.end() && it->second == DEFINITION_EXPLICIT);
-			}
-			if (showNode &&
-				(type.isPackage() ||
-				 !m_hierarchyCache.isChildOfVisibleNodeOrInvisible(storageNode.id)))
-			{
-				addNodeToGraph(storageNode, type, graph.get(), false);
-			}
-		}
-	});
-	m_sqliteIndexStorage.commitTransaction();
+				const NodeType type(intToNodeKind(storageNode.type));
+				if (type.isFile())
+				{
+					auto fn_it = m_fileNodeIndexed.find(storageNode.id);
+					if (fn_it != m_fileNodeIndexed.end() && fn_it->second)
+					{
+						addFileNodeToGraph(storageNode, graph.get());
+					}
+				}
+				else
+				{
+					bool showNode = true;
+					if (sdk_size)
+					{
+						auto it = m_symbolDefinitionKinds.find(storageNode.id);
+						showNode =
+							(it != m_symbolDefinitionKinds.end() && it->second == DEFINITION_EXPLICIT);
+					}
+					if (showNode &&
+						(type.isPackage() ||
+						 !m_hierarchyCache.isChildOfVisibleNodeOrInvisible(storageNode.id)))
+					{
+						addNodeToGraph(storageNode, type, graph.get(), false);
+					}
+				}
+			});
+		m_sqliteIndexStorage.commitTransaction();
+	}
+	
 	return graph;
 }
 
@@ -1091,29 +1099,35 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForNodeTypes(NodeTypeSet nodeT
 {
 	TRACE();
 
-	std::vector<Id> tokenIds;
+	std::shared_ptr<Graph> graph = std::make_shared<Graph>();
+	const int nodeCount = m_sqliteIndexStorage.getNodeCount(true);
+	if (nodeCount < 100000)
+	{
+		std::vector<Id> tokenIds;
 
-	m_sqliteIndexStorage.forEach<StorageNode>([&](StorageNode&& node) {
-		if (nodeTypes.contains(NodeType(intToNodeKind(node.type))))
-		{
-			auto it = m_symbolDefinitionKinds.find(node.id);
-			if (it != m_symbolDefinitionKinds.end() && it->second == DEFINITION_EXPLICIT)
+		m_sqliteIndexStorage.forEach<StorageNode>(
+			[&](StorageNode&& node)
 			{
-				tokenIds.push_back(node.id);
+				if (nodeTypes.contains(NodeType(intToNodeKind(node.type))))
+				{
+					auto it = m_symbolDefinitionKinds.find(node.id);
+					if (it != m_symbolDefinitionKinds.end() && it->second == DEFINITION_EXPLICIT)
+					{
+						tokenIds.push_back(node.id);
+					}
+				}
+			});
+
+		if (nodeTypes.containsMatching([](const NodeType& type) { return type.isFile(); }))
+		{
+			for (const auto& p: m_fileNodePaths)
+			{
+				tokenIds.push_back(p.first);
 			}
 		}
-	});
 
-	if (nodeTypes.containsMatching([](const NodeType& type) { return type.isFile(); }))
-	{
-		for (const auto& p: m_fileNodePaths)
-		{
-			tokenIds.push_back(p.first);
-		}
+		addNodesWithParentsAndEdgesToGraph(tokenIds, std::vector<Id>(), graph.get(), false);
 	}
-
-	std::shared_ptr<Graph> graph = std::make_shared<Graph>();
-	addNodesWithParentsAndEdgesToGraph(tokenIds, std::vector<Id>(), graph.get(), false);
 
 	return graph;
 }
@@ -1890,7 +1904,7 @@ StorageStats PersistentStorage::getStorageStats() const
 
 ErrorCountInfo PersistentStorage::getErrorCount() const
 {
-	return ErrorCountInfo(m_sqliteIndexStorage.getAllErrorInfos());
+	return ErrorCountInfo(m_sqliteIndexStorage.getErrorCount(true), m_sqliteIndexStorage.getFatalErrorCount(true));
 }
 
 std::vector<ErrorInfo> PersistentStorage::getErrorsLimited(const ErrorFilter& filter) const

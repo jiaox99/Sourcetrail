@@ -200,6 +200,7 @@ public:
 	int getFileLineSum(bool fromOverview = false) const;
 	int getSourceLocationCount(bool fromOverview = false) const;
 	int getErrorCount(bool fromOverview = false) const;
+	int getFatalErrorCount(bool fromOverview = false) const;
 
 	void resetOverview();
 
