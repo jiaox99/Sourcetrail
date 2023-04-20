@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "types.h"
+#include "boost/serialization/access.hpp"
 
 class NodeType;
 
@@ -45,6 +46,14 @@ public:
 
 private:
 	typedef unsigned long int MaskType;
+
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		(void)version;
+		ar & m_nodeTypeMask;
+	}
 
 	NodeTypeSet(MaskType typeMask);
 

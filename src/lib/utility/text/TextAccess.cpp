@@ -216,7 +216,7 @@ bool TextAccess::checkIndexInRange(const unsigned int index) const
 	else if (index > m_lines.size())
 	{
 		LOG_WARNING_STREAM(
-			<< "Tried to access index " << index << ". Maximum index is " << m_lines.size());
+			<< getFilePath().str() << "Tried to access index " << index << ". Maximum index is " << m_lines.size());
 		return false;
 	}
 

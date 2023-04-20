@@ -911,7 +911,7 @@ std::shared_ptr<TextAccess> SqliteIndexStorage::getFileContentByPath(const std::
 
 		if (!q.eof())
 		{
-			return TextAccess::createFromString(q.getStringField(0, ""));
+			return TextAccess::createFromString(q.getStringField(0, ""), FilePath(filePath));
 		}
 	}
 	catch (CppSQLite3Exception& e)
@@ -919,7 +919,7 @@ std::shared_ptr<TextAccess> SqliteIndexStorage::getFileContentByPath(const std::
 		LOG_ERROR(std::to_string(e.errorCode()) + ": " + e.errorMessage());
 	}
 
-	return TextAccess::createFromString("");
+	return TextAccess::createFromString("", FilePath(filePath));
 }
 
 void SqliteIndexStorage::setFileIndexed(Id fileId, bool indexed)
@@ -1575,15 +1575,17 @@ std::vector<std::vector<long>> SqliteIndexStorage::queryFTSFileContentOffsets(co
 	while (!q.eof())
 	{
 		std::vector<long> offset;
+		//LOG_INFO_STREAM(<< "FileID:" << q.getInt64Field(0) << "OffsetsInfo:" << q.getStringField(1));
 		offset.push_back(q.getInt64Field(0));
 		std::istringstream ss(q.getStringField(1));
 		std::string token;
 		int count = 0;
 		while (std::getline(ss, token, ' '))
 		{
-			if (((count + 1) % 3) == 0)
+			if ((count % 4) > 1)
 			{
 				offset.push_back(std::stol(token));
+				//LOG_INFO_STREAM(<< token);
 			}
 			count++;
 		}

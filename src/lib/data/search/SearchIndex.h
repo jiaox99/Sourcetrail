@@ -10,6 +10,10 @@
 #include "Node.h"
 #include "NodeTypeSet.h"
 #include "types.h"
+#include "boost/serialization/set.hpp"
+#include "boost/serialization/string.hpp"
+#include "boost/serialization/map.hpp"
+#include "boost/serialization/access.hpp"
 
 // SearchResult is only used as an internal type in the SearchIndex and the PersistentStorage
 struct SearchResult
@@ -43,6 +47,9 @@ public:
 	void finishSetup();
 	void clear();
 
+	void load(std::string filePath);
+	void save(std::string filePath);
+
 	// maxResultCount == 0 means "no restriction".
 	std::vector<SearchResult> search(
 		const std::wstring& query,
@@ -55,18 +62,47 @@ private:
 
 	struct SearchNode
 	{
+		SearchNode(): SearchNode(NodeTypeSet()) {}
+
 		SearchNode(NodeTypeSet containedTypes): containedTypes(containedTypes) {}
 
+	private:
+		friend class boost::serialization::access;
+
+		template<class Archive>
+		void serialize(Archive& ar, const unsigned int version)
+		{
+			(void)version;
+			ar & elementIds;
+			ar & containedTypes;
+			ar & edges;
+		}
+
+	public:
 		std::map<Id, NodeType> elementIds;
 		NodeTypeSet containedTypes;
-		std::map<wchar_t, SearchEdge*> edges;
+		std::map<wchar_t, long> edges;
 	};
 
 	struct SearchEdge
 	{
-		SearchEdge(SearchNode* target, std::wstring s): target(target), s(std::move(s)) {}
+		SearchEdge(): SearchEdge(0, L"") {}
+		SearchEdge(long target, std::wstring s): target(target), s(std::move(s)) {}
 
-		SearchNode* target;
+	private:
+		friend class boost::serialization::access;
+
+		template <class Archive>
+		void serialize(Archive& ar, const unsigned int version)
+		{
+			(void)version;
+			ar & target;
+			ar & s;
+			ar & gate;
+		}
+
+	public:
+		long target;
 		std::wstring s;
 		std::set<wchar_t> gate;
 	};
@@ -118,7 +154,6 @@ public:
 
 	static bool isNoLetter(const wchar_t c);
 
-private:
 	std::vector<std::unique_ptr<SearchNode>> m_nodes;
 	std::vector<std::unique_ptr<SearchEdge>> m_edges;
 	SearchNode* m_root;

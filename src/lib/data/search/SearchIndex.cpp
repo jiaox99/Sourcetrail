@@ -6,6 +6,13 @@
 
 #include "utility.h"
 #include "utilityString.h"
+#include "boost/archive/binary_iarchive.hpp"
+#include "boost/archive/binary_oarchive.hpp"
+#include "boost/archive/text_iarchive.hpp"
+#include "boost/archive/text_oarchive.hpp"
+#include "boost/serialization/unique_ptr.hpp"
+#include <iostream>
+#include <fstream>
 
 SearchIndex::SearchIndex()
 {
@@ -25,7 +32,7 @@ void SearchIndex::addNode(Id id, std::wstring name, NodeType type)
 		auto it = currentNode->edges.find(name[0]);
 		if (it != currentNode->edges.end())
 		{
-			SearchEdge* currentEdge = it->second;
+			SearchEdge* currentEdge = m_edges[it->second].get();
 			const std::wstring& edgeString = currentEdge->s;
 
 			size_t matchCount = 1;
@@ -48,24 +55,24 @@ void SearchIndex::addNode(Id id, std::wstring name, NodeType type)
 					currentEdge->target, edgeString.substr(matchCount)));
 				SearchEdge* e = m_edges.back().get();
 
-				n->edges.emplace(e->s[0], e);
+				n->edges.emplace(e->s[0], m_edges.size()-1);
 
 				currentEdge->s = edgeString.substr(0, matchCount);
-				currentEdge->target = n;
+				currentEdge->target = (long)m_nodes.size() - 1;
 			}
 
 			name = name.substr(matchCount);
-			currentNode = currentEdge->target;
+			currentNode = m_nodes[currentEdge->target].get();
 		}
 		else
 		{
 			m_nodes.push_back(std::make_unique<SearchNode>(currentNode->containedTypes));
 			SearchNode* n = m_nodes.back().get();
 
-			m_edges.push_back(std::make_unique<SearchEdge>(n, std::move(name)));
+			m_edges.push_back(std::make_unique<SearchEdge>((long)m_nodes.size() - 1, std::move(name)));
 			SearchEdge* e = m_edges.back().get();
 
-			currentNode->edges.emplace(e->s[0], e);
+			currentNode->edges.emplace(e->s[0], m_edges.size()-1);
 			currentNode = n;
 
 			name.clear();
@@ -79,7 +86,7 @@ void SearchIndex::finishSetup()
 {
 	for (auto& p: m_root->edges)
 	{
-		populateEdgeGate(p.second);
+		populateEdgeGate(m_edges[p.second].get());
 	}
 }
 
@@ -146,9 +153,9 @@ std::vector<SearchResult> SearchIndex::search(
 
 void SearchIndex::populateEdgeGate(SearchEdge* e)
 {
-	for (auto& p: e->target->edges)
+	for (auto& p: m_nodes[e->target].get()->edges)
 	{
-		SearchEdge* targetEdge = p.second;
+		SearchEdge* targetEdge = m_edges[p.second].get();
 		populateEdgeGate(targetEdge);
 		utility::append(e->gate, targetEdge->gate);
 	}
@@ -167,9 +174,9 @@ void SearchIndex::searchRecursive(
 {
 	for (const auto& p: path.node->edges)
 	{
-		const SearchEdge* currentEdge = p.second;
+		const SearchEdge* currentEdge = m_edges[p.second].get();
 
-		if (!acceptedNodeTypes.intersectsWith(currentEdge->target->containedTypes))
+		if (!acceptedNodeTypes.intersectsWith(m_nodes[currentEdge->target]->containedTypes))
 		{
 			continue;
 		}
@@ -192,7 +199,7 @@ void SearchIndex::searchRecursive(
 
 		// consume characters for edge
 		const std::wstring& edgeString = currentEdge->s;
-		SearchPath currentPath {path.text + edgeString, path.indices, currentEdge->target};
+		SearchPath currentPath {path.text + edgeString, path.indices, m_nodes[currentEdge->target].get()};
 
 		size_t j = 0;
 		for (size_t i = 0; i < edgeString.size() && j < remainingQuery.size(); i++)
@@ -267,8 +274,8 @@ std::multiset<SearchResult> SearchIndex::createScoredResults(
 
 				for (auto p: path.node->edges)
 				{
-					const SearchEdge* edge = p.second;
-					nextPaths.emplace_back(path.text + edge->s, path.indices, edge->target);
+					const SearchEdge* edge = m_edges[p.second].get();
+					nextPaths.emplace_back(path.text + edge->s, path.indices, m_nodes[edge->target].get());
 				}
 			}
 
@@ -563,4 +570,44 @@ bool SearchIndex::isNoLetter(const wchar_t c)
 		return true;
 	}
 	return false;
+}
+
+void SearchIndex::load(std::string filePath)
+{
+	m_nodes.clear();
+	m_edges.clear();
+
+	std::ifstream file{filePath};
+	boost::archive::text_iarchive ia {file};
+	long count;
+	ia >> count;
+	for (long i=0; i<count; i++)
+	{
+		m_nodes.push_back(std::make_unique<SearchNode>());
+		ia >> m_nodes.back();
+	}
+	ia >> count;
+	for (long i = 0; i < count; i++)
+	{
+		m_edges.push_back(std::make_unique<SearchEdge>());
+		ia >> m_edges.back();
+	}
+
+	m_root = this->m_nodes.front().get();
+}
+
+void SearchIndex::save(std::string filePath)
+{
+	std::ofstream file {filePath};
+	boost::archive::text_oarchive oa {file};
+	oa << this->m_nodes.size();
+	for (long i = 0; i < m_nodes.size(); i++)
+	{
+		oa << m_nodes.at(i);
+	}
+	oa << this->m_edges.size();
+	for (long i = 0; i < m_edges.size(); i++)
+	{
+		oa << m_edges[i];
+	}
 }

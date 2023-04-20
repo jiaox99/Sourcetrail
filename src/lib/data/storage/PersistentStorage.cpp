@@ -28,6 +28,7 @@
 #include "tracing.h"
 #include "utility.h"
 #include "utilityApp.h"
+#include "boost/filesystem.hpp"
 
 PersistentStorage::PersistentStorage(const FilePath& dbPath, const FilePath& bookmarkPath)
 	: m_sqliteIndexStorage(dbPath), m_sqliteBookmarkStorage(bookmarkPath)
@@ -651,7 +652,6 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getFullTextSearchLo
 				 /*no ref here!*/ fileResults,
 				 &collection,
 				 &collectionMutex]() {
-					const int termLength = static_cast<int>(searchTerm.length());
 					for (const FullTextSearchResult& fileResult: fileResults)
 					{
 						const FilePath filePath = getFileNodePath(fileResult.fileId);
@@ -661,8 +661,11 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getFullTextSearchLo
 						int lineNumber = 1;
 						std::wstring line = codec.decode(fileContent->getLine(lineNumber));
 
-						for (int pos: fileResult.positions)
+						const int posCount = fileResult.positions.size();
+						for (int i=0; i<posCount; i++)
 						{
+							int pos = fileResult.positions[i];
+							int termLength = fileResult.termLens[i];
 							while (charsTotal + (int)line.length() <= pos)
 							{
 								charsTotal += static_cast<int>(line.length());
@@ -3333,6 +3336,16 @@ void PersistentStorage::buildSearchIndex()
 	TRACE();
 
 	const FilePath dbPath = getIndexDbFilePath();
+	const FilePath symbolIndexPath = dbPath.getParentDirectory().getConcatenated(FilePath("symbols.idx"));
+
+	const FilePath fileIndexPath = dbPath.getParentDirectory().getConcatenated(FilePath("files.idx"));
+
+	if (symbolIndexPath.exists())
+	{
+		m_symbolIndex.load(symbolIndexPath.str());
+		m_fileIndex.load(fileIndexPath.str());
+		return;
+	}
 
 	m_sqliteIndexStorage.forEach<StorageNode>([&](StorageNode&& node) {
 		const NodeType type(intToNodeKind(node.type));
@@ -3385,6 +3398,9 @@ void PersistentStorage::buildSearchIndex()
 
 	m_symbolIndex.finishSetup();
 	m_fileIndex.finishSetup();
+
+	m_symbolIndex.save(symbolIndexPath.str());
+	m_fileIndex.save(fileIndexPath.str());
 }
 
 void PersistentStorage::buildFullTextSearchIndex() const

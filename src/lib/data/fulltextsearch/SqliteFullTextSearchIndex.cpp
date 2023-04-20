@@ -29,14 +29,17 @@ std::vector<FullTextSearchResult> SqliteFullTextSearchIndex::searchForTerm(const
 
 			hit.fileId = offset[0];
 
-			for (int j = 1; j < offset.size(); j++)
+			for (int j = 1; j < offset.size(); j += 2)
 			{
 				hit.positions.push_back(offset[j]);
+				hit.termLens.push_back(offset[j+1]);
 			}
 
 			ret.push_back(hit);
 		}
 	}
+
+	LOG_INFO_STREAM(<< "Full text query with result:" << ret.size());
 
 	return ret;
 }

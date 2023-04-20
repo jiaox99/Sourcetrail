@@ -15,6 +15,7 @@ struct FullTextSearchResult
 {
 	Id fileId;
 	std::vector<int> positions;
+	std::vector<int> termLens;
 };
 
 struct FullTextSearchFile

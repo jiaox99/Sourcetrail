@@ -11,6 +11,7 @@
 #include "NodeKind.h"
 #include "Tree.h"
 #include "types.h"
+#include "boost/serialization/access.hpp"
 
 class NodeType
 {
@@ -47,6 +48,8 @@ public:
 	};
 
 	static std::vector<NodeType> getOverviewBundleNodeTypesOrdered();
+
+	NodeType(): NodeType((NodeKind)0) {}
 
 	explicit NodeType(NodeKind kind);
 
@@ -85,6 +88,14 @@ public:
 	static std::vector<NodeType> const overviewBundleNodeTypesOrdered;
 
 private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		(void)version;
+		ar & m_kind;
+	}
+
 	NodeKind m_kind;
 };
 
