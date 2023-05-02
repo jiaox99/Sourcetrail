@@ -56,9 +56,14 @@ public:
 	virtual void clear() = 0;
 
 	virtual void showSnippets(
-		const std::vector<CodeFileParams>& files,
+		const std::vector<CodeFileParams>::const_iterator begin,
+		const std::vector<CodeFileParams>::const_iterator end,
 		const CodeParams& params,
 		const CodeScrollParams& scrollParams) = 0;
+
+	virtual void showSnippets(
+		const std::vector<CodeFileParams>::const_iterator begin,
+		const std::vector<CodeFileParams>::const_iterator end) = 0;
 
 	virtual void showSingleFile(
 		const CodeFileParams& file, const CodeParams& params, const CodeScrollParams& scrollParams) = 0;

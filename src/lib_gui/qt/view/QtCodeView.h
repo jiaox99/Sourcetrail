@@ -27,9 +27,14 @@ public:
 	void clear() override;
 
 	void showSnippets(
-		const std::vector<CodeFileParams>& files,
+		const std::vector<CodeFileParams>::const_iterator begin,
+		const std::vector<CodeFileParams>::const_iterator end,
 		const CodeParams& params,
 		const CodeScrollParams& scrollParams) override;
+
+	void showSnippets(
+		const std::vector<CodeFileParams>::const_iterator begin,
+		const std::vector<CodeFileParams>::const_iterator end) override;
 
 	void showSingleFile(
 		const CodeFileParams& file,

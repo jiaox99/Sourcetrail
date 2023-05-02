@@ -656,6 +656,36 @@ void CodeController::handleMessage( MessageExportReferences* message )
 	}
 }
 
+void CodeController::getMoreFilesRange(
+	std::vector<CodeFileParams>::const_iterator& begin,
+	std::vector<CodeFileParams>::const_iterator& end)
+{
+	begin = m_files.begin() + m_currentFileMax;
+	end = begin;
+	if (end != m_files.end())
+	{
+		for (int i = 0; i < SNIPPETS_INCREASE_STEP; i++)
+		{
+			end++;
+			m_currentFileMax++;
+			if (end == m_files.end())
+			{
+				break;
+			}
+		}
+	}
+}
+
+void CodeController::handleMessage(MessageCodeRequestMoreSnippets* message)
+{
+	std::vector<CodeFileParams>::const_iterator begin;
+	std::vector<CodeFileParams>::const_iterator end;
+
+	getMoreFilesRange(begin, end);
+
+	getView()->showSnippets(begin, end);
+}
+
 CodeView* CodeController::getView() const
 {
 	return Controller::getView<CodeView>();
@@ -1682,7 +1712,14 @@ void CodeController::showFiles(CodeView::CodeParams params, CodeScrollParams scr
 
 		if (getView()->isInListMode())
 		{
-			getView()->showSnippets(m_files, params, scrollParams);
+			m_currentFileMax = 0;
+
+			std::vector<CodeFileParams>::const_iterator begin;
+			std::vector<CodeFileParams>::const_iterator end;
+
+			getMoreFilesRange(begin, end);
+			
+			getView()->showSnippets(begin, end, params, scrollParams);
 		}
 		else
 		{

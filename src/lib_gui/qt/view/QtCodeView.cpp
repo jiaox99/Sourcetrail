@@ -90,7 +90,8 @@ bool QtCodeView::showsErrors() const
 }
 
 void QtCodeView::showSnippets(
-	const std::vector<CodeFileParams>& files,
+	const std::vector<CodeFileParams>::const_iterator begin,
+	const std::vector<CodeFileParams>::const_iterator end,
 	const CodeParams& params,
 	const CodeScrollParams& scrollParams)
 {
@@ -106,15 +107,37 @@ void QtCodeView::showSnippets(
 
 		setNavigationState(params);
 
-		for (const CodeFileParams& file: files)
+		auto _i = begin;
+		while (_i != end)
 		{
-			m_widget->addSnippetFile(file);
+			m_widget->addSnippetFile(*_i);
+			_i++;
 		}
 
 		m_widget->updateFiles();
 		m_widget->scrollTo(scrollParams, !params.clearSnippets, !params.locationIdToFocus);
 		m_widget->focusInitialLocation(params.locationIdToFocus);
 	});
+}
+
+void QtCodeView::showSnippets(
+	const std::vector<CodeFileParams>::const_iterator begin,
+	const std::vector<CodeFileParams>::const_iterator end)
+{
+	m_onQtThread(
+		[=]()
+		{
+			TRACE("show snippets more");
+
+			auto _i = begin;
+			while (_i != end)
+			{
+				m_widget->addSnippetFile(*_i);
+				_i++;
+			}
+
+			m_widget->updateFiles();
+		});
 }
 
 void QtCodeView::showSingleFile(

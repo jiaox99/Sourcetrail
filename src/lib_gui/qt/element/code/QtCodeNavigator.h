@@ -125,6 +125,7 @@ private slots:
 	void previousLocalReference();
 	void nextLocalReference();
 
+	void loadMoreSnippets();
 	void setModeList();
 	void setModeSingle();
 
@@ -162,6 +163,7 @@ private:
 	QtSearchBarButton* m_nextLocalReferenceButton;
 	QLabel* m_localRefLabel;
 
+	QtSearchBarButton* m_loadMoreButton;
 	QtSearchBarButton* m_listButton;
 	QtSearchBarButton* m_fileButton;
 

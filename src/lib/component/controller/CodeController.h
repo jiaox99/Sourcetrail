@@ -31,6 +31,7 @@
 #include "MessageShowScope.h"
 #include "MessageToNextCodeReference.h"
 #include "MessageExportReferences.h"
+#include "MessageCodeRequestMoreSnippets.h"
 #include "types.h"
 
 #include "CodeView.h"
@@ -68,6 +69,7 @@ class CodeController
 	, public MessageListener<MessageShowScope>
 	, public MessageListener<MessageToNextCodeReference>
 	, public MessageListener<MessageExportReferences>
+	, public MessageListener<MessageCodeRequestMoreSnippets>
 {
 public:
 	CodeController(StorageAccess* storageAccess);
@@ -111,6 +113,7 @@ private:
 	void handleMessage(MessageShowScope* message) override;
 	void handleMessage(MessageToNextCodeReference* message) override;
 	void handleMessage(MessageExportReferences* message ) override;
+	void handleMessage(MessageCodeRequestMoreSnippets* message) override;
 
 	CodeView* getView() const;
 
@@ -172,12 +175,17 @@ private:
 	void showFirstActiveReference(Id tokenId, bool updateView);
 	void showFiles(CodeView::CodeParams params, CodeScrollParams scrollParams, bool updateView);
 
+	void CodeController::getMoreFilesRange(
+		std::vector<CodeFileParams>::const_iterator& begin,
+		std::vector<CodeFileParams>::const_iterator& end);
+
 	StorageAccess* m_storageAccess;
 
 	std::shared_ptr<SourceLocationCollection> m_collection;
 
 	std::vector<CodeFileParams> m_files;
 	FilePath m_currentFilePath;
+	int m_currentFileMax;
 
 	CodeView::CodeParams m_codeParams;
 	CodeScrollParams m_scrollParams;
@@ -189,6 +197,8 @@ private:
 
 	std::vector<Reference> m_localReferences;
 	int m_localReferenceIndex = -1;
+
+	const int SNIPPETS_INCREASE_STEP = 50;
 };
 
 #endif	  // CODE_CONTROLLER_H

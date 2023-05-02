@@ -18,6 +18,7 @@
 #include "MessageScrollCode.h"
 #include "MessageTabOpenWith.h"
 #include "MessageToNextCodeReference.h"
+#include "MessageCodeRequestMoreSnippets.h"
 #include "QtCodeArea.h"
 #include "QtCodeFile.h"
 #include "QtCodeSnippet.h"
@@ -135,26 +136,34 @@ QtCodeNavigator::QtCodeNavigator(QWidget* parent)
 			m_localRefLabel->hide();
 		}
 
+		m_loadMoreButton = new QtSearchBarButton(
+			ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/more.png"), true
+		);
 		m_listButton = new QtSearchBarButton(
 			ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/list.png"), true);
 		m_fileButton = new QtSearchBarButton(
 			ResourcePaths::getGuiDirectoryPath().concatenate(L"code_view/images/file.png"), true);
 
+		m_loadMoreButton->setObjectName(QStringLiteral("load_more_button"));
 		m_listButton->setObjectName(QStringLiteral("mode_button_list"));
 		m_fileButton->setObjectName(QStringLiteral("mode_button_single"));
 
+		m_loadMoreButton->setToolTip(QStringLiteral("load more snippets"));
 		m_listButton->setToolTip(QStringLiteral("snippet list mode"));
 		m_fileButton->setToolTip(QStringLiteral("single file mode"));
 
 		m_listButton->setCheckable(true);
 		m_fileButton->setCheckable(true);
 
+		m_loadMoreButton->setIconSize(QSize(14, 14));
 		m_listButton->setIconSize(QSize(14, 14));
 		m_fileButton->setIconSize(QSize(14, 14));
 
 		navLayout->addWidget(m_listButton);
+		navLayout->addWidget(m_loadMoreButton);
 		navLayout->addWidget(m_fileButton);
 
+		connect(m_loadMoreButton, &QPushButton::clicked, this, &QtCodeNavigator::loadMoreSnippets);
 		connect(m_listButton, &QPushButton::clicked, this, &QtCodeNavigator::setModeList);
 		connect(m_fileButton, &QPushButton::clicked, this, &QtCodeNavigator::setModeSingle);
 
@@ -908,6 +917,15 @@ void QtCodeNavigator::previousLocalReference()
 void QtCodeNavigator::nextLocalReference()
 {
 	MessageCodeReference(MessageCodeReference::REFERENCE_NEXT, true).dispatch();
+}
+
+void QtCodeNavigator::loadMoreSnippets() {
+	if (m_mode == MODE_SINGLE)
+	{
+		return;
+	}
+
+	MessageCodeRequestMoreSnippets().dispatch();
 }
 
 void QtCodeNavigator::setModeList()
