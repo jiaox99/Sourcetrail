@@ -466,6 +466,7 @@ add_files(
 	utility/messaging/type/code/MessageScrollToLine.h
 	utility/messaging/type/code/MessageShowReference.h
 	utility/messaging/type/code/MessageShowScope.h
+    utility/messaging/type/code/MessageCodeRequestMoreSnippets.h
 
 	utility/messaging/type/custom_trail/MessageCustomTrailShow.h
 

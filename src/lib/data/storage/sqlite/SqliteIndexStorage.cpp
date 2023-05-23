@@ -819,7 +819,7 @@ void SqliteIndexStorage::tryGetOrUpdateEnummasks(
 {
 	if (fromOverview)
 	{
-		int nodeTypes = executeStatementScalar("SELECT " + key + " type FROM overview;", 0);
+		int nodeTypes = executeStatementScalar("SELECT value FROM overview WHERE key='" + key + "';", -1);
 		if (nodeTypes > 0)
 		{
 			splitEnums(nodeTypes, 32, types);
@@ -1115,7 +1115,7 @@ std::vector<ErrorInfo> SqliteIndexStorage::getAllErrorInfos() const
 		"FROM occurrence "
 		"INNER JOIN error ON (error.id = occurrence.element_id) "
 		"INNER JOIN source_location ON (source_location.id = occurrence.source_location_id) "
-		"INNER JOIN file ON (file.id = source_location.file_node_id);");
+		"INNER JOIN file ON (file.id = source_location.file_node_id) LIMIT 2000;");
 
 	std::map<Id, size_t> errorIdCount;
 

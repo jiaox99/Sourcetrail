@@ -1561,7 +1561,7 @@ NodeKindMask PersistentStorage::getAvailableNodeTypes() const
 	TRACE();
 
 	NodeKindMask mask = 0;
-	for (int type: m_sqliteIndexStorage.getAvailableNodeTypes())
+	for (int type: m_sqliteIndexStorage.getAvailableNodeTypes(true))
 	{
 		mask |= intToNodeKind(type);
 	}
@@ -1573,7 +1573,7 @@ Edge::TypeMask PersistentStorage::getAvailableEdgeTypes() const
 	TRACE();
 
 	Edge::TypeMask mask = 0;
-	for (int type: m_sqliteIndexStorage.getAvailableEdgeTypes())
+	for (int type: m_sqliteIndexStorage.getAvailableEdgeTypes(true))
 	{
 		mask |= Edge::intToType(type);
 	}
