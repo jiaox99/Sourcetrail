@@ -23,6 +23,7 @@
 #include "MessageListener.h"
 #include "MessageScrollGraph.h"
 #include "MessageShowReference.h"
+#include "MessageSaveAsDot.h"
 
 #include "Controller.h"
 #include "DummyEdge.h"
@@ -53,6 +54,7 @@ class GraphController
 	, public MessageListener<MessageGraphNodeMove>
 	, public MessageListener<MessageScrollGraph>
 	, public MessageListener<MessageShowReference>
+	, public MessageListener<MessageSaveAsDot>
 {
 public:
 	GraphController(StorageAccess* storageAccess);
@@ -79,6 +81,7 @@ private:
 	void handleMessage(MessageGraphNodeMove* message) override;
 	void handleMessage(MessageScrollGraph* message) override;
 	void handleMessage(MessageShowReference* message) override;
+	void handleMessage(MessageSaveAsDot* message) override;
 
 	GraphView* getView() const;
 

@@ -1,7 +1,11 @@
 #include "GraphController.h"
 
 #include <set>
+#include <sstream>
+#include <algorithm>
+#include <regex>
 
+#include "Edge.h"
 #include "AccessKind.h"
 #include "Application.h"
 #include "ApplicationSettings.h"
@@ -622,6 +626,241 @@ void GraphController::handleMessage(MessageShowReference* message)
 	GraphView::GraphParams params;
 	params.animatedTransition = false;
 	buildGraph(message, params);
+}
+
+void fixNodeName(std::wstring& origin, std::wstring& finalStr)
+{
+	std::wregex reg(L"<");
+	finalStr = regex_replace(origin, reg, L"&lt;");
+	std::wregex reg2(L">");
+	finalStr = regex_replace(finalStr, reg2, L"&gt;");
+}
+
+void dotPrintNode(std::wstringstream& content, const std::shared_ptr<DummyNode>& node)
+{
+	std::wstring prefix;
+	if (node->isAccessNode())
+	{
+		switch (node->accessKind)
+		{
+		case ACCESS_PRIVATE:
+			prefix = L"-";
+			break;
+		case ACCESS_PROTECTED:
+			prefix =  L"#";
+			break;
+		default:
+			prefix = L"+";
+			break;
+		}
+	}
+	else
+	{
+		std::wstring finalStr;
+		fixNodeName(node->name, finalStr);
+		content << finalStr;
+	}
+
+	for (const std::shared_ptr<DummyNode>& subNode: node->subNodes)
+	{
+		if (subNode->tokenId > 0)
+		{
+			content << L"\t\t\t\t\t<tr><td align=\"left\" port=\"_t" << subNode->tokenId << L"\">" << prefix;
+			dotPrintNode(content, subNode);
+			content << L"</td></tr>\n";
+		}
+	}
+}
+
+bool findNodePath(std::vector<std::shared_ptr<DummyNode>>& nodePath, const Id& id, const std::vector<std::shared_ptr<DummyNode>>& nodes)
+{
+	for (const std::shared_ptr<DummyNode>& node: nodes)
+	{
+		if (node->tokenId == id)
+		{
+			nodePath.push_back(node);
+			return true;
+			break;
+		}
+		else if (findNodePath(nodePath, id, node->subNodes))
+		{
+			if (node->tokenId > 0)
+			{
+				nodePath.push_back(node);
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void dotPrintEdgeNode(std::wstringstream& content, const std::vector<std::shared_ptr<DummyNode>>& nodePath)
+{
+	int count = 0;
+	for (auto node = nodePath.rbegin(); node != nodePath.rend(); node++)
+	{
+		if (count > 0)
+		{
+			content << L":";
+		}
+		Id id = node->get()->tokenId;
+		content << L"_t" << id;
+		count++;
+	}
+}
+
+void dotPrintEdgeDir(std::wstringstream& content, const std::shared_ptr<DummyEdge>& edge)
+{
+	if (edge->getDirection() == TokenComponentBundledEdges::DIRECTION_BACKWARD)
+	{
+		content << L"dir=back ";
+	}
+	else if (edge->getDirection() == TokenComponentBundledEdges::DIRECTION_FORWARD)
+	{
+		content << L"dir=forward ";
+	}
+	else
+	{
+		content << L"dir=none ";
+	}
+}
+
+void dotPrintEdgeArrowtail(std::wstringstream& content, const std::shared_ptr<DummyEdge>& edge)
+{
+	const Edge* e = edge->data;
+	if (e != nullptr)
+	{
+		switch (e->getType())
+		{
+		case Edge::EDGE_INHERITANCE:
+			content << L"arrowtail=diamond";
+			break;
+		default:
+			break;
+		}
+	}
+	content << L"arrowtail=normal";
+}
+
+bool isEdgeNodeExist(const Id id, const std::vector<std::shared_ptr<DummyNode>>& nodes)
+{
+	bool exists = false;
+	for (auto const& node: nodes)
+	{
+		if (node->tokenId == id)
+		{
+			exists = true;
+		}
+		else
+		{
+			exists = isEdgeNodeExist(id, node->subNodes);
+		}
+
+		if (exists)
+		{
+			break;
+		}
+	}
+
+	return exists;
+}
+
+void dumpAllNodes(const std::vector<std::shared_ptr<DummyNode>>& nodes, const std::string prefix="")
+{
+	for (auto const& node : nodes)
+	{
+		std::string name(node->name.begin(), node->name.end());
+		LOG_INFO_STREAM(<< prefix << "ID:" << node->tokenId << " Name:" << name);
+		dumpAllNodes(node->subNodes, prefix + "\t");
+	}
+}
+
+void GraphController::handleMessage(MessageSaveAsDot* message)
+{
+	std::wstringstream ss;
+
+	ss << L"digraph Caller {\n";
+
+	dumpAllNodes(m_dummyNodes);
+
+	for (const std::shared_ptr<DummyNode>& node : m_dummyNodes)
+	{
+		if (!node->visible || node->hidden)
+		{
+			continue;
+		}
+		ss << L"\t_t" << node->tokenId << L"[\n";
+		ss << L"\t\tshape=none\n";
+		ss << L"\t\tlabel=<<table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n";
+		std::wstring finalStr;
+		fixNodeName(node->name, finalStr);
+		ss << L"\t\t\t\t<tr><td><b>\"" << finalStr << L"\"</b></td></tr>\n";
+		
+		for (const std::shared_ptr<DummyNode>& subNode: node->subNodes)
+		{
+			if ((node->expanded || node->subNodes.size() == 1)&& subNode->subNodes.size() > 0)
+			{
+				ss << L"\t\t\t\t<tr><td><table border=\"0\" cellborder=\"0\" cellspacing=\"0\">\n";
+				dotPrintNode(ss, subNode);
+				ss << L"\t\t\t\t</table>\n\t\t\t\t</td></tr>\n";
+			}
+		}
+		
+		ss << L"\t\t\t</table>>\n";
+		ss << L"\t]\n";
+	}
+	std::map<Id, int> colorMap;
+	for (const std::shared_ptr<DummyEdge>& edge : m_dummyEdges)
+	{
+		if (!edge->visible || edge->hidden)
+		{
+			continue;
+		}
+
+		std::vector<std::shared_ptr<DummyNode>> ownerNodePath;
+		std::vector<std::shared_ptr<DummyNode>> targetNodePath;
+		findNodePath(ownerNodePath, edge->ownerId, m_dummyNodes);
+		findNodePath(targetNodePath, edge->targetId, m_dummyNodes);
+
+		if (ownerNodePath.size() * targetNodePath.size() == 0)
+		{
+			continue;
+		}
+
+		LOG_INFO_STREAM(<< "Adding edge From:" << edge->ownerId << " To:" << edge->targetId);
+
+		ss << L"\tedge [";
+		std::wstring portPos;
+		
+		if (ownerNodePath.back() == targetNodePath.back())
+		{
+			Id id = ownerNodePath.back()->tokenId;
+			colorMap[id]++;
+			const int color = colorMap[id];
+			ss << "colorscheme=paired12 color=" << color << " ";
+			if (color == 12)
+			{
+				colorMap[id] = 0;
+			}
+			portPos = L":e";
+		}
+		else
+		{
+			ss << L"colorscheme=\"\" ";
+		}
+		dotPrintEdgeDir(ss, edge);
+		dotPrintEdgeArrowtail(ss, edge);
+		ss << L"]\n\t";
+		dotPrintEdgeNode(ss, ownerNodePath);
+		ss << portPos << L"->";
+		dotPrintEdgeNode(ss, targetNodePath);
+		ss << portPos << L"\n";
+	}
+
+	ss << "}\n";
+
+	message->setContent(ss.str());
 }
 
 GraphView* GraphController::getView() const

@@ -22,6 +22,7 @@
 #include "MessageHistoryRedo.h"
 #include "MessageHistoryUndo.h"
 #include "MessageTabOpenWith.h"
+#include "MessageSaveAsDot.h"
 #include "QtContextMenu.h"
 #include "QtFileDialog.h"
 #include "QtGraphEdge.h"
@@ -129,6 +130,11 @@ QtGraphicsView::QtGraphicsView(GraphFocusHandler* focusHandler, QWidget* parent)
 	m_copyGraphAction->setStatusTip(QStringLiteral("Save this graph as image to the Clipboard"));
 	m_copyGraphAction->setToolTip(QStringLiteral("Save this graph as image to the Clipboard"));
 	connect(m_copyGraphAction, &QAction::triggered, this, &QtGraphicsView::copyGraph);
+
+	m_copyGraphDotAction = new QAction(QStringLiteral("Save dot to Clipboard"), this);
+	m_copyGraphDotAction->setStatusTip(QStringLiteral("Save the graph as dot to the Clipboard"));
+	m_copyGraphDotAction->setToolTip(QStringLiteral("Save the graph as dot to the Clipboard"));
+	connect(m_copyGraphDotAction, &QAction::triggered, this, &QtGraphicsView::copyGraphToDot);
 
 	m_focusIndicator = new QWidget(this);
 	m_focusIndicator->setObjectName(QStringLiteral("focus_indicator"));
@@ -592,6 +598,7 @@ void QtGraphicsView::contextMenuEvent(QContextMenuEvent* event)
 	menu.addSeparator();
 	menu.addAction(m_exportGraphAction);
 	menu.addAction(m_copyGraphAction);
+	menu.addAction(m_copyGraphDotAction);
 
 	menu.addSeparator();
 	menu.addAction(m_copyNodeNameAction);
@@ -767,6 +774,15 @@ void QtGraphicsView::exportGraph()
 void QtGraphicsView::copyGraph()
 {
 	QApplication::clipboard()->setImage(toQImage());
+}
+
+void QtGraphicsView::copyGraphToDot()
+{
+	std::wstring content;
+	MessageSaveAsDot saveAsDot(&content);
+	saveAsDot.setSendAsTask(false);
+	saveAsDot.dispatchImmediately();
+	QApplication::clipboard()->setText(QString::fromStdWString(content));
 }
 
 void QtGraphicsView::copyNodeName()

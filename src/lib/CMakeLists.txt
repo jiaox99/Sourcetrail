@@ -493,6 +493,7 @@ add_files(
 	utility/messaging/type/graph/MessageGraphNodeMove.h
 	utility/messaging/type/graph/MessageScrollGraph.h
 	utility/messaging/type/graph/MessageSaveAsImage.h
+    utility/messaging/type/graph/MessageSaveAsDot.h
 
 	utility/messaging/type/history/MessageHistoryToPosition.h
 	utility/messaging/type/history/MessageHistoryRedo.h

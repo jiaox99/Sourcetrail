@@ -74,6 +74,7 @@ private slots:
 	QImage toQImage();
 	void exportGraph();
 	void copyGraph();
+	void copyGraphToDot();
 	void copyNodeName();
 
 	void collapseNode();
@@ -140,6 +141,7 @@ private:
 
 	QAction* m_exportGraphAction;
 	QAction* m_copyGraphAction;
+	QAction* m_copyGraphDotAction;
 
 	QWidget* m_focusIndicator;
 
