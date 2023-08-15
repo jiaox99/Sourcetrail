@@ -85,7 +85,8 @@ bool startWith(const std::wstring& str, const std::wstring& head)
 bool shouldIgnoreFlag(const std::wstring& compilerFlag)
 {
 	if (startWith(compilerFlag, L"-Z") || startWith(compilerFlag, L"-w") ||
-		startWith(compilerFlag, L"/Yu") || startWith(compilerFlag, L"/Fp"))
+		startWith(compilerFlag, L"/Yu") || startWith(compilerFlag, L"/Fp") ||
+		startWith(compilerFlag, L"/diagnostics"))
 	{
 		return true;
 	}
@@ -148,7 +149,7 @@ void CxxParser::setupIgnoreCompilerFlags()
 		s_ignoreFlags.emplace(L"-sdl-");
 		s_ignoreFlags.emplace(L"-EHsc");
 		s_ignoreFlags.emplace(L"-bigobj");
-		s_ignoreFlags.emplace(L"/diagnostics:classic");
+		s_ignoreFlags.emplace(L"-Oy-");
 		s_ignoreFlags.emplace(L"-d2SSAOptimizer-");
 	}
 }
