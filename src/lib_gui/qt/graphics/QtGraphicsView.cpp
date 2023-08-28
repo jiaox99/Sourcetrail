@@ -779,7 +779,7 @@ void QtGraphicsView::copyGraph()
 void QtGraphicsView::copyGraphToDot()
 {
 	std::wstring content;
-	MessageSaveAsDot saveAsDot(&content);
+	MessageSaveAsDot saveAsDot(&content, getSchedulerId());
 	saveAsDot.setSendAsTask(false);
 	saveAsDot.dispatchImmediately();
 	QApplication::clipboard()->setText(QString::fromStdWString(content));

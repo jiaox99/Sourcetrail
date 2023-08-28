@@ -628,6 +628,39 @@ void GraphController::handleMessage(MessageShowReference* message)
 	buildGraph(message, params);
 }
 
+void printTab(std::wstringstream& content, int count)
+{
+	while (count > 0)
+	{
+		content << L"\t";
+		count--;
+	}
+}
+
+bool shouldExpandNode(const std::shared_ptr<DummyNode>& node)
+{
+	for (auto const& subNode: node->subNodes)
+	{
+		if (subNode->name.size() > 0)
+		{
+			return true;
+		}
+
+		bool result = false;
+
+		if (subNode->subNodes.size() > 0)
+		{
+			result = shouldExpandNode(subNode);
+		}
+		if (result)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void fixNodeName(std::wstring& origin, std::wstring& finalStr)
 {
 	std::wregex reg(L"<");
@@ -636,7 +669,7 @@ void fixNodeName(std::wstring& origin, std::wstring& finalStr)
 	finalStr = regex_replace(finalStr, reg2, L"&gt;");
 }
 
-void dotPrintNode(std::wstringstream& content, const std::shared_ptr<DummyNode>& node)
+void dotPrintNode(std::wstringstream& content, const std::shared_ptr<DummyNode>& node, const std::wstring& _prefix, int tabCount=0)
 {
 	std::wstring prefix;
 	if (node->isAccessNode())
@@ -658,15 +691,28 @@ void dotPrintNode(std::wstringstream& content, const std::shared_ptr<DummyNode>&
 	{
 		std::wstring finalStr;
 		fixNodeName(node->name, finalStr);
-		content << finalStr;
+		if (finalStr.size() > 0)
+		{
+			printTab(content, tabCount);
+			content << L"<tr><td align=\"left\" port=\"_t" << node->tokenId
+					<< L"\">" << prefix << finalStr << L"</td></tr>\n";
+		}
 	}
 
 	for (const std::shared_ptr<DummyNode>& subNode: node->subNodes)
 	{
 		if (subNode->tokenId > 0)
 		{
-			content << L"\t\t\t\t\t<tr><td align=\"left\" port=\"_t" << subNode->tokenId << L"\">" << prefix;
-			dotPrintNode(content, subNode);
+			dotPrintNode(content, subNode, prefix, tabCount+1);
+		}
+		else if (shouldExpandNode(subNode))
+		{
+			printTab(content, tabCount);
+			content << L"<tr><td><table border=\"0\" cellborder=\"0\" cellspacing=\"0\">\n";
+			dotPrintNode(content, subNode, L"", tabCount+1);
+			printTab(content, tabCount+1);
+			content << L"</table>\n";
+			printTab(content, tabCount);
 			content << L"</td></tr>\n";
 		}
 	}
@@ -697,16 +743,14 @@ bool findNodePath(std::vector<std::shared_ptr<DummyNode>>& nodePath, const Id& i
 
 void dotPrintEdgeNode(std::wstringstream& content, const std::vector<std::shared_ptr<DummyNode>>& nodePath)
 {
-	int count = 0;
-	for (auto node = nodePath.rbegin(); node != nodePath.rend(); node++)
+	Id id = nodePath.back().get()->tokenId;
+	content << L"_t" << id;
+
+	if (nodePath.size() > 1)
 	{
-		if (count > 0)
-		{
-			content << L":";
-		}
-		Id id = node->get()->tokenId;
+		content << L":";
+		id = nodePath.front().get()->tokenId;
 		content << L"_t" << id;
-		count++;
 	}
 }
 
@@ -778,6 +822,10 @@ void dumpAllNodes(const std::vector<std::shared_ptr<DummyNode>>& nodes, const st
 
 void GraphController::handleMessage(MessageSaveAsDot* message)
 {
+	if (message->scheduleId != getTabId())
+	{
+		return;
+	}
 	std::wstringstream ss;
 
 	ss << L"digraph Caller {\n";
@@ -795,15 +843,15 @@ void GraphController::handleMessage(MessageSaveAsDot* message)
 		ss << L"\t\tlabel=<<table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n";
 		std::wstring finalStr;
 		fixNodeName(node->name, finalStr);
-		ss << L"\t\t\t\t<tr><td><b>\"" << finalStr << L"\"</b></td></tr>\n";
+		ss << L"\t\t\t\t<tr><td><b>" << finalStr << L"</b></td></tr>\n";
 		
 		for (const std::shared_ptr<DummyNode>& subNode: node->subNodes)
 		{
-			if ((node->expanded || node->subNodes.size() == 1)&& subNode->subNodes.size() > 0)
+			if (shouldExpandNode(subNode))
 			{
 				ss << L"\t\t\t\t<tr><td><table border=\"0\" cellborder=\"0\" cellspacing=\"0\">\n";
-				dotPrintNode(ss, subNode);
-				ss << L"\t\t\t\t</table>\n\t\t\t\t</td></tr>\n";
+				dotPrintNode(ss, subNode, L"", 5);
+				ss << L"\t\t\t\t\t</table>\n\t\t\t\t</td></tr>\n";
 			}
 		}
 		
