@@ -75,28 +75,6 @@ bool runToolOnCodeWithArgs(
 }
 }	 // namespace
 
-std::set<std::wstring> s_ignoreFlags;
-
-bool startWith(const std::wstring& str, const std::wstring& head)
-{
-	return str.compare(0, head.size(), head) == 0;
-}
-
-bool shouldIgnoreFlag(const std::wstring& compilerFlag)
-{
-	if (startWith(compilerFlag, L"-Z") || startWith(compilerFlag, L"-w") ||
-		startWith(compilerFlag, L"/Yu") || startWith(compilerFlag, L"/Fp"))
-	{
-		return true;
-	}
-
-	if (s_ignoreFlags.find(compilerFlag) != s_ignoreFlags.end())
-	{
-		return true;
-	}
-	return false;
-}
-
 std::vector<std::string> CxxParser::getCommandlineArgumentsEssential(
 	const std::vector<std::wstring>& compilerFlags)
 {
@@ -121,36 +99,10 @@ std::vector<std::string> CxxParser::getCommandlineArgumentsEssential(
 
 	for (const std::wstring& compilerFlag: compilerFlags)
 	{
-		if (startWith(compilerFlag, L"/std:c++"))
-		{
-			std::wstring cppStandard(L"-std=c++");
-			cppStandard.append(compilerFlag.substr(8));
-			args.push_back(utility::encodeToUtf8(cppStandard));
-			continue;
-		}
-
-		if (!shouldIgnoreFlag(compilerFlag))
-		{
-			args.push_back(utility::encodeToUtf8(compilerFlag));
-		}
+		args.push_back(utility::encodeToUtf8(compilerFlag));
 	}
 
 	return args;
-}
-
-void CxxParser::setupIgnoreCompilerFlags()
-{
-	if (s_ignoreFlags.size() == 0)
-	{
-		s_ignoreFlags.emplace(L"/FS");
-		s_ignoreFlags.emplace(L"/Zf");
-		s_ignoreFlags.emplace(L"-nologo");
-		s_ignoreFlags.emplace(L"-sdl-");
-		s_ignoreFlags.emplace(L"-EHsc");
-		s_ignoreFlags.emplace(L"-bigobj");
-		s_ignoreFlags.emplace(L"/diagnostics:classic");
-		s_ignoreFlags.emplace(L"-d2SSAOptimizer-");
-	}
 }
 
 void CxxParser::initializeLLVM()
@@ -162,7 +114,6 @@ void CxxParser::initializeLLVM()
 		llvm::InitializeAllTargetMCs();
 		llvm::InitializeAllAsmPrinters();
 		llvm::InitializeAllAsmParsers();
-
 		initialized = true;
 	}
 }
