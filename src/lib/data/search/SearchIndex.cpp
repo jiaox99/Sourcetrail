@@ -23,17 +23,18 @@ SearchIndex::~SearchIndex() {}
 
 void SearchIndex::addNode(Id id, std::wstring name, NodeType type)
 {
-	SearchNode* currentNode = m_root;
+	size_t currentNodeI = 0;	   // SearchNode* currentNode = &m_nodes[0];
 
 	while (name.size() > 0)
 	{
+		SearchNode* currentNode = &m_nodes[currentNodeI];
 		currentNode->containedTypes.add(type);
 
 		auto it = currentNode->edges.find(name[0]);
 		if (it != currentNode->edges.end())
 		{
-			SearchEdge* currentEdge = m_edges[it->second].get();
-			const std::wstring& edgeString = currentEdge->s;
+			SearchEdge* currentEdge = &m_edges[it->second];
+			const flashmapper::wstring& edgeString = currentEdge->s;
 
 			size_t matchCount = 1;
 			for (size_t j = 1; j < edgeString.size() && j < name.size(); j++)
@@ -48,45 +49,45 @@ void SearchIndex::addNode(Id id, std::wstring name, NodeType type)
 			if (matchCount < edgeString.size())
 			{
 				// split current edge
-				m_nodes.push_back(std::make_unique<SearchNode>(currentNode->containedTypes));
-				SearchNode* n = m_nodes.back().get();
+				m_nodes.push_back(SearchNode(currentNode->containedTypes));
+				SearchNode* n = m_nodes.back();
 
-				m_edges.push_back(std::make_unique<SearchEdge>(
-					currentEdge->target, edgeString.substr(matchCount)));
-				SearchEdge* e = m_edges.back().get();
+				m_edges.push_back(SearchEdge(
+					currentEdge->target, edgeString.substr(matchCount).data()));
+				SearchEdge* e = m_edges.back();
 
 				n->edges.emplace(e->s[0], m_edges.size()-1);
 
-				currentEdge->s = edgeString.substr(0, matchCount);
+				currentEdge->s = m_edges[it->second].s.substr(0, matchCount);
 				currentEdge->target = (long)m_nodes.size() - 1;
 			}
 
 			name = name.substr(matchCount);
-			currentNode = m_nodes[currentEdge->target].get();
+			currentNodeI = currentEdge->target;
 		}
 		else
 		{
-			m_nodes.push_back(std::make_unique<SearchNode>(currentNode->containedTypes));
-			SearchNode* n = m_nodes.back().get();
+			m_nodes.push_back(SearchNode(currentNode->containedTypes));
+			SearchNode* n = m_nodes.back();
 
-			m_edges.push_back(std::make_unique<SearchEdge>((long)m_nodes.size() - 1, std::move(name)));
-			SearchEdge* e = m_edges.back().get();
+			m_edges.push_back(SearchEdge((long)m_nodes.size() - 1, std::move(name)));
+			SearchEdge* e = m_edges.back();
 
-			currentNode->edges.emplace(e->s[0], m_edges.size()-1);
-			currentNode = n;
+			m_nodes[currentNodeI].edges.emplace(e->s[0], m_edges.size() - 1);
+			currentNodeI = m_nodes.size() - 1;
 
 			name.clear();
 		}
 	}
 
-	currentNode->elementIds.emplace(id, type);
+	m_nodes[currentNodeI].elementIds.emplace(id, type);
 }
 
 void SearchIndex::finishSetup()
 {
-	for (auto& p: m_root->edges)
+	for (auto& p: m_nodes[0].edges)
 	{
-		populateEdgeGate(m_edges[p.second].get());
+		populateEdgeGate(&m_edges[p.second]);
 	}
 }
 
@@ -95,9 +96,7 @@ void SearchIndex::clear()
 	m_nodes.clear();
 	m_edges.clear();
 
-	m_nodes.push_back(std::make_unique<SearchNode>(NodeTypeSet()));
-
-	m_root = m_nodes.back().get();
+	m_nodes.push_back(SearchNode());
 }
 
 std::vector<SearchResult> SearchIndex::search(
@@ -109,7 +108,7 @@ std::vector<SearchResult> SearchIndex::search(
 	// find paths containing query
 	std::vector<SearchPath> paths;
 	searchRecursive(
-		SearchPath(L"", {}, m_root), utility::toLowerCase(query), acceptedNodeTypes, &paths);
+		SearchPath(L"", {}, &m_nodes[0]), utility::toLowerCase(query), acceptedNodeTypes, &paths);
 
 	// create scored search results
 	std::multiset<SearchResult> searchResults = createScoredResults(
@@ -153,9 +152,9 @@ std::vector<SearchResult> SearchIndex::search(
 
 void SearchIndex::populateEdgeGate(SearchEdge* e)
 {
-	for (auto& p: m_nodes[e->target].get()->edges)
+	for (auto& p: m_nodes[e->target].edges)
 	{
-		SearchEdge* targetEdge = m_edges[p.second].get();
+		SearchEdge* targetEdge = &m_edges[p.second];
 		populateEdgeGate(targetEdge);
 		utility::append(e->gate, targetEdge->gate);
 	}
@@ -174,9 +173,9 @@ void SearchIndex::searchRecursive(
 {
 	for (const auto& p: path.node->edges)
 	{
-		const SearchEdge* currentEdge = m_edges[p.second].get();
+		const SearchEdge* currentEdge = &m_edges[p.second];
 
-		if (!acceptedNodeTypes.intersectsWith(m_nodes[currentEdge->target]->containedTypes))
+		if (!acceptedNodeTypes.intersectsWith(m_nodes[currentEdge->target].containedTypes))
 		{
 			continue;
 		}
@@ -198,8 +197,8 @@ void SearchIndex::searchRecursive(
 		}
 
 		// consume characters for edge
-		const std::wstring& edgeString = currentEdge->s;
-		SearchPath currentPath {path.text + edgeString, path.indices, m_nodes[currentEdge->target].get()};
+		const flashmapper::wstring& edgeString = currentEdge->s;
+		SearchPath currentPath {(path.text + edgeString).data(), path.indices, &m_nodes[currentEdge->target]};
 
 		size_t j = 0;
 		for (size_t i = 0; i < edgeString.size() && j < remainingQuery.size(); i++)
@@ -229,7 +228,7 @@ std::multiset<SearchResult> SearchIndex::createScoredResults(
 	std::multimap<int, SearchPath, std::greater<int>> scoredPaths;
 	for (const SearchPath& path: paths)
 	{
-		scoredPaths.emplace(scoreText(path.text, path.indices), path);
+		scoredPaths.emplace(scoreText(path.text.data(), path.indices), path);
 	}
 
 	// score paths and subpaths
@@ -260,10 +259,10 @@ std::multiset<SearchResult> SearchIndex::createScoredResults(
 					if (!elementIds.empty())
 					{
 						searchResults.emplace(
-							path.text,
+							path.text.data(),
 							std::move(elementIds),
 							path.indices,
-							scoreText(path.text, path.indices));
+							scoreText(path.text.data(), path.indices));
 
 						if (maxResultCount && searchResults.size() >= maxResultCount)
 						{
@@ -274,8 +273,8 @@ std::multiset<SearchResult> SearchIndex::createScoredResults(
 
 				for (auto p: path.node->edges)
 				{
-					const SearchEdge* edge = m_edges[p.second].get();
-					nextPaths.emplace_back(path.text + edge->s, path.indices, m_nodes[edge->target].get());
+					const SearchEdge* edge = &m_edges[p.second];
+					nextPaths.emplace_back((path.text + edge->s).data(), path.indices, &m_nodes[edge->target]);
 				}
 			}
 
@@ -572,42 +571,37 @@ bool SearchIndex::isNoLetter(const wchar_t c)
 	return false;
 }
 
+flashmapper::Mapper mapper;
+
+flashmapper::Address SearchIndex::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block)
+{
+	mapper.writeData(m_nodes, block);
+	mapper.writeData(m_edges, block);
+
+	return block.baseOffset + block.cursor;
+
+}
+
+void SearchIndex::resolveData(flashmapper::DataBlock& block)
+{
+	m_nodes.resolveData(block);
+	m_edges.resolveData(block);
+}
+
 void SearchIndex::load(std::string filePath)
 {
 	m_nodes.clear();
 	m_edges.clear();
 
-	std::ifstream file{filePath};
-	boost::archive::text_iarchive ia {file};
-	long count;
-	ia >> count;
-	for (long i=0; i<count; i++)
-	{
-		m_nodes.push_back(std::make_unique<SearchNode>());
-		ia >> m_nodes.back();
-	}
-	ia >> count;
-	for (long i = 0; i < count; i++)
-	{
-		m_edges.push_back(std::make_unique<SearchEdge>());
-		ia >> m_edges.back();
-	}
-
-	m_root = this->m_nodes.front().get();
+	mapper.readFromFile(filePath.c_str());
+	SearchIndex* index = mapper.readData<SearchIndex>();
+	m_nodes = std::move(index->m_nodes);
+	m_edges = std::move(index->m_edges);
 }
 
 void SearchIndex::save(std::string filePath)
 {
-	std::ofstream file {filePath};
-	boost::archive::text_oarchive oa {file};
-	oa << this->m_nodes.size();
-	for (long i = 0; i < m_nodes.size(); i++)
-	{
-		oa << m_nodes.at(i);
-	}
-	oa << this->m_edges.size();
-	for (long i = 0; i < m_edges.size(); i++)
-	{
-		oa << m_edges[i];
-	}
+	flashmapper::DataBlock block = mapper.requestBlock(sizeof(SearchIndex));
+	mapper.writeData(this, block);
+	mapper.writeToFile(filePath.c_str());
 }

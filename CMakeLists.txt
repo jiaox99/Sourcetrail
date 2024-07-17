@@ -219,7 +219,6 @@ if(Qt5Widgets_FOUND)
 	add_definitions (-DQT_DISABLE_DEPRECATED_BEFORE=${QT_MIN_VERSION_HEX})
 endif()
 
-
 # Setup ---------------------------------------------------------------------------
 
 if (WIN32)
@@ -332,7 +331,7 @@ set_source_files_properties(${EXTERNAL_FILES} PROPERTIES COMPILE_FLAGS "-w")
 set_source_files_properties(${EXTERNAL_C_FILES} PROPERTIES COMPILE_FLAGS "-std=gnu89 -w")
 set_source_files_properties(${EXTERNAL_C_FILES} PROPERTIES COMPILE_DEFINITIONS SQLITE_ENABLE_FTS4=1)
 
-add_library(${LIB_PROJECT_NAME} ${LIB_FILES} ${EXTERNAL_FILES} ${EXTERNAL_C_FILES})
+add_library(${LIB_PROJECT_NAME} ${LIB_FILES} ${EXTERNAL_FILES} ${EXTERNAL_C_FILES} ${FlashMapper_DIR}/Mapper.cpp)
 
 create_source_groups(${LIB_FILES})
 create_source_groups(${EXTERNAL_FILES})
@@ -342,6 +341,7 @@ set_property(
 	TARGET ${LIB_PROJECT_NAME}
 	PROPERTY INCLUDE_DIRECTORIES
 		"${LIB_INCLUDE_PATHS}"
+		"${FlashMapper_DIR}/includes"
 		"${LIB_GUI_INCLUDE_PATHS}"
 		"${LIB_UTILITY_INCLUDE_PATHS}"
 		"${LIB_CXX_INCLUDE_PATHS}"
@@ -379,6 +379,7 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 		TARGET ${LIB_CXX_PROJECT_NAME}
 		PROPERTY INCLUDE_DIRECTORIES
 			"${LIB_CXX_INCLUDE_PATHS}"
+			"${FlashMapper_DIR}/includes"
 			"${LIB_UTILITY_INCLUDE_PATHS}"
 			"${LIB_INCLUDE_PATHS}"
 			"${CMAKE_BINARY_DIR}/src/lib"
@@ -567,6 +568,7 @@ set_property(
 	TARGET ${LIB_GUI_PROJECT_NAME}
 	PROPERTY INCLUDE_DIRECTORIES
 		"${LIB_GUI_INCLUDE_PATHS}"
+		"${FlashMapper_DIR}/includes"
 		"${LIB_UTILITY_INCLUDE_PATHS}"
 		"${LIB_INCLUDE_PATHS}"
 		"${CMAKE_BINARY_DIR}/src/lib_gui"
@@ -661,6 +663,7 @@ set_property(
 	TARGET ${APP_INDEXER_NAME}
 	PROPERTY INCLUDE_DIRECTORIES
 		"${APP_INCLUDE_PATHS}"
+		"${FlashMapper_DIR}/includes"
 		"${LIB_INCLUDE_PATHS}"
 		"${LIB_UTILITY_INCLUDE_PATHS}"
 		"${LIB_GUI_INCLUDE_PATHS}"
@@ -714,7 +717,7 @@ if (WIN32)
 	string(REGEX REPLACE "/" "\\\\" BACKSLASHED_CMAKE_BINARY_DIR ${CMAKE_BINARY_DIR})
 	string(REGEX REPLACE "/" "\\\\" BACKSLASHED_CMAKE_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 else ()
-	add_executable(${APP_PROJECT_NAME} ${APP_FILES})
+	add_executable(${APP_PROJECT_NAME} ${APP_FILES} ${FlashMapper_DIR}/Mapper.cpp)
 endif ()
 
 create_source_groups(${APP_FILES})
@@ -736,6 +739,7 @@ set_property(
 	TARGET ${APP_PROJECT_NAME}
 	PROPERTY INCLUDE_DIRECTORIES
 		"${APP_INCLUDE_PATHS}"
+		"${FlashMapper_DIR}/includes"
 		"${LIB_INCLUDE_PATHS}"
 		"${LIB_UTILITY_INCLUDE_PATHS}"
 		"${LIB_GUI_INCLUDE_PATHS}"
@@ -825,7 +829,7 @@ else ()
 	endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 endif ()
 
-add_executable (${TEST_PROJECT_NAME} ${TEST_FILES})
+add_executable (${TEST_PROJECT_NAME} ${TEST_FILES} ${FlashMapper_DIR}/Mapper.cpp)
 
 create_source_groups(${TEST_FILES})
 
@@ -842,10 +846,15 @@ target_link_libraries(
 	$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_PROJECT_NAME}>
 )
 
+if (WIN32)
+    target_link_libraries(${TEST_PROJECT_NAME} "bcrypt")
+endif ()
+
 set_property(
 	TARGET ${TEST_PROJECT_NAME}
 	PROPERTY INCLUDE_DIRECTORIES
 		"${TEST_INCLUDE_PATHS}"
+		"${FlashMapper_DIR}/includes"
 		"${LIB_INCLUDE_PATHS}"
 		"${LIB_UTILITY_INCLUDE_PATHS}"
 		"${LIB_GUI_INCLUDE_PATHS}"

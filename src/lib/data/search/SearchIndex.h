@@ -14,6 +14,7 @@
 #include "boost/serialization/string.hpp"
 #include "boost/serialization/map.hpp"
 #include "boost/serialization/access.hpp"
+#include "flashmapper.h"
 
 // SearchResult is only used as an internal type in the SearchIndex and the PersistentStorage
 struct SearchResult
@@ -37,11 +38,14 @@ struct SearchResult
 	int score;
 };
 
-class SearchIndex
+class SearchIndex : flashmapper::ComplexMapper
 {
 public:
 	SearchIndex();
 	virtual ~SearchIndex();
+
+	flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block);
+	void resolveData(flashmapper::DataBlock& block);
 
 	void addNode(Id id, std::wstring name, NodeType type = NodeType(NODE_SYMBOL));
 	void finishSetup();
@@ -66,55 +70,31 @@ private:
 
 		SearchNode(NodeTypeSet containedTypes): containedTypes(containedTypes) {}
 
-	private:
-		friend class boost::serialization::access;
-
-		template<class Archive>
-		void serialize(Archive& ar, const unsigned int version)
-		{
-			(void)version;
-			ar & elementIds;
-			ar & containedTypes;
-			ar & edges;
-		}
-
 	public:
-		std::map<Id, NodeType> elementIds;
+		flashmapper::map<Id, NodeType> elementIds;
 		NodeTypeSet containedTypes;
-		std::map<wchar_t, long> edges;
+		flashmapper::map<wchar_t, long> edges;
 	};
 
 	struct SearchEdge
 	{
 		SearchEdge(): SearchEdge(0, L"") {}
-		SearchEdge(long target, std::wstring s): target(target), s(std::move(s)) {}
-
-	private:
-		friend class boost::serialization::access;
-
-		template <class Archive>
-		void serialize(Archive& ar, const unsigned int version)
-		{
-			(void)version;
-			ar & target;
-			ar & s;
-			ar & gate;
-		}
+		SearchEdge(long target, std::wstring s): target(target), s(s.c_str()) {}
 
 	public:
 		long target;
-		std::wstring s;
-		std::set<wchar_t> gate;
+		flashmapper::wstring s;
+		flashmapper::set<wchar_t> gate;
 	};
 
 	struct SearchPath
 	{
 		SearchPath(std::wstring text, std::vector<size_t> indices, SearchNode* node)
-			: text(std::move(text)), indices(std::move(indices)), node(node)
+			: text(text.c_str()), indices(std::move(indices)), node(node)
 		{
 		}
 
-		std::wstring text;
+		flashmapper::wstring text;
 		std::vector<size_t> indices;
 		SearchNode* node;
 	};
@@ -154,9 +134,8 @@ public:
 
 	static bool isNoLetter(const wchar_t c);
 
-	std::vector<std::unique_ptr<SearchNode>> m_nodes;
-	std::vector<std::unique_ptr<SearchEdge>> m_edges;
-	SearchNode* m_root;
+	flashmapper::vector<SearchNode> m_nodes;
+	flashmapper::vector<SearchEdge> m_edges;
 };
 
 #endif	  // SEARCH_INDEX_H
