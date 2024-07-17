@@ -13,6 +13,7 @@
 
 #include "FilePath.h"
 #include "utilityString.h"
+#include "flashmapper.h"
 
 namespace utility
 {
@@ -37,6 +38,9 @@ void append(std::vector<T>& a, const std::vector<T>& b);
 
 template <typename T>
 void append(std::set<T>& a, const std::set<T>& b);
+
+template <typename T>
+void append(flashmapper::set<T>& a, const flashmapper::set<T>& b);
 
 template <typename T>
 void append(std::unordered_set<T>& a, const std::unordered_set<T>& b);
@@ -197,6 +201,15 @@ template <typename T>
 void utility::append(std::set<T>& a, const std::set<T>& b)
 {
 	a.insert(b.begin(), b.end());
+}
+
+template <typename T>
+void utility::append(flashmapper::set<T>& a, const flashmapper::set<T>& b)
+{
+	for (auto& e : b)
+	{
+		a.insert(e);
+	}
 }
 
 template <typename T>
