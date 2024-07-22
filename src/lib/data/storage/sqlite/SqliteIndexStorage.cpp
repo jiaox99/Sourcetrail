@@ -806,7 +806,7 @@ void splitEnums(int value, int bits, std::vector<int>& types)
 {
 	for (int i = 0; i < bits; i++)
 	{
-		const int type = 1 >> i;
+		const int type = 1 << i;
 		if ((type & value) > 0)
 		{
 			types.push_back(type);
