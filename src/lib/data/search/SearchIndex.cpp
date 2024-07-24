@@ -14,6 +14,8 @@
 #include <iostream>
 #include <fstream>
 
+#pragma optimize("", off)
+
 SearchIndex::SearchIndex()
 {
 	clear();
@@ -33,7 +35,8 @@ void SearchIndex::addNode(Id id, std::wstring name, NodeType type)
 		auto it = currentNode->edges.find(name[0]);
 		if (it != currentNode->edges.end())
 		{
-			SearchEdge* currentEdge = &m_edges[it->second];
+			size_t currentEdgeI = it->second;
+			SearchEdge* currentEdge = &m_edges[currentEdgeI];
 			const flashmapper::wstring& edgeString = currentEdge->s;
 
 			size_t matchCount = 1;
@@ -58,7 +61,8 @@ void SearchIndex::addNode(Id id, std::wstring name, NodeType type)
 
 				n->edges.emplace(e->s[0], m_edges.size()-1);
 
-				currentEdge->s = m_edges[it->second].s.substr(0, matchCount);
+				currentEdge = &m_edges[currentEdgeI];
+				currentEdge->s = m_edges[currentEdgeI].s.substr(0, matchCount);
 				currentEdge->target = (long)m_nodes.size() - 1;
 			}
 
@@ -156,6 +160,19 @@ void SearchIndex::populateEdgeGate(SearchEdge* e)
 	{
 		SearchEdge* targetEdge = &m_edges[p.second];
 		populateEdgeGate(targetEdge);
+#if 0
+		std::cout << "PreGate:" << std::endl;
+		for (auto c : e->gate)
+		{
+			std::wcout << c << std::endl;
+		}
+
+		std::cout << "MergingGate:" << std::endl;
+		for (auto c: targetEdge->gate)
+		{
+			std::wcout << c << std::endl;
+		}
+#endif // #if 0
 		utility::append(e->gate, targetEdge->gate);
 	}
 
@@ -571,9 +588,7 @@ bool SearchIndex::isNoLetter(const wchar_t c)
 	return false;
 }
 
-flashmapper::Mapper mapper;
-
-flashmapper::Address SearchIndex::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block)
+flashmapper::Address SearchIndex::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const
 {
 	mapper.writeData(m_nodes, block);
 	mapper.writeData(m_edges, block);
@@ -588,7 +603,37 @@ void SearchIndex::resolveData(flashmapper::DataBlock& block)
 	m_edges.resolveData(block);
 }
 
-void SearchIndex::load(std::string filePath)
+flashmapper::Address SearchIndex::SearchNode::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const
+{
+	mapper.writeData(elementIds, block);
+	mapper.writeData(edges, block);
+	mapper.writeData(containedTypes, block);
+
+	return block.baseOffset + block.cursor;
+}
+
+void SearchIndex::SearchNode::resolveData(flashmapper::DataBlock& block)
+{
+	elementIds.resolveData(block);
+	edges.resolveData(block);
+}
+
+flashmapper::Address SearchIndex::SearchEdge::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const
+{
+	mapper.writeData(s, block);
+	mapper.writeData(gate, block);
+	mapper.writeData(target, block);
+
+	return block.baseOffset + block.cursor;
+}
+
+void SearchIndex::SearchEdge::resolveData(flashmapper::DataBlock& block)
+{
+	s.resolveData(block);
+	gate.resolveData(block);
+}
+
+void SearchIndex::load(std::string filePath, flashmapper::Mapper& mapper)
 {
 	m_nodes.clear();
 	m_edges.clear();
@@ -599,9 +644,12 @@ void SearchIndex::load(std::string filePath)
 	m_edges = std::move(index->m_edges);
 }
 
-void SearchIndex::save(std::string filePath)
+void SearchIndex::save(std::string filePath, flashmapper::Mapper& mapper)
 {
+	mapper.reset();
 	flashmapper::DataBlock block = mapper.requestBlock(sizeof(SearchIndex));
-	mapper.writeData(this, block);
+	mapper.writeData(*this, block);
+	block.align();
+	assert(block.postValidate());
 	mapper.writeToFile(filePath.c_str());
 }

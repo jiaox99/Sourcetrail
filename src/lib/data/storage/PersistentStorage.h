@@ -12,6 +12,7 @@
 #include "SqliteIndexStorage.h"
 #include "Storage.h"
 #include "StorageAccess.h"
+#include "flashmapper.h"
 
 class PersistentStorage
 	: public Storage
@@ -269,7 +270,9 @@ private:
 
 	SearchIndex m_commandIndex;
 	SearchIndex m_symbolIndex;
+	flashmapper::Mapper m_symbolIndexMapper;
 	SearchIndex m_fileIndex;
+	flashmapper::Mapper m_fileIndexMapper;
 
 	mutable FullTextSearchIndex m_fullTextSearchIndex;
 	mutable SqliteFullTextSearchIndex m_sqliteFullTextSearchIndex;

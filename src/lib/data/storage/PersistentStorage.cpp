@@ -30,6 +30,8 @@
 #include "utilityApp.h"
 #include "boost/filesystem.hpp"
 
+#pragma optimize("", off)
+
 PersistentStorage::PersistentStorage(const FilePath& dbPath, const FilePath& bookmarkPath)
 	: m_sqliteIndexStorage(dbPath), m_sqliteBookmarkStorage(bookmarkPath)
 {
@@ -3342,8 +3344,8 @@ void PersistentStorage::buildSearchIndex()
 
 	if (symbolIndexPath.exists())
 	{
-		m_symbolIndex.load(symbolIndexPath.str());
-		m_fileIndex.load(fileIndexPath.str());
+		m_symbolIndex.load(symbolIndexPath.str(), m_symbolIndexMapper);
+		m_fileIndex.load(fileIndexPath.str(), m_fileIndexMapper);
 		return;
 	}
 
@@ -3399,8 +3401,8 @@ void PersistentStorage::buildSearchIndex()
 	m_symbolIndex.finishSetup();
 	m_fileIndex.finishSetup();
 
-	m_symbolIndex.save(symbolIndexPath.str());
-	m_fileIndex.save(fileIndexPath.str());
+	m_symbolIndex.save(symbolIndexPath.str(), m_symbolIndexMapper);
+	m_fileIndex.save(fileIndexPath.str(), m_fileIndexMapper);
 }
 
 void PersistentStorage::buildFullTextSearchIndex() const

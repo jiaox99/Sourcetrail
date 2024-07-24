@@ -74,3 +74,7 @@ CMakeLists.txt.user*
 /deployment/windows/wixSetup/Setup/build/Setup/x64
 .history/
 release/
+out/
+.vs/
+testing/
+CMakePresets.json

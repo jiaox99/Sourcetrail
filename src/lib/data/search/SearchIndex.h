@@ -42,17 +42,17 @@ class SearchIndex : flashmapper::ComplexMapper
 {
 public:
 	SearchIndex();
-	virtual ~SearchIndex();
+	~SearchIndex();
 
-	flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block);
+	flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const;
 	void resolveData(flashmapper::DataBlock& block);
 
 	void addNode(Id id, std::wstring name, NodeType type = NodeType(NODE_SYMBOL));
 	void finishSetup();
 	void clear();
 
-	void load(std::string filePath);
-	void save(std::string filePath);
+	void load(std::string filePath, flashmapper::Mapper& mapper);
+	void save(std::string filePath, flashmapper::Mapper& mapper);
 
 	// maxResultCount == 0 means "no restriction".
 	std::vector<SearchResult> search(
@@ -64,27 +64,33 @@ public:
 private:
 	struct SearchEdge;
 
-	struct SearchNode
+	struct SearchNode : flashmapper::ComplexMapper
 	{
 		SearchNode(): SearchNode(NodeTypeSet()) {}
 
 		SearchNode(NodeTypeSet containedTypes): containedTypes(containedTypes) {}
 
+		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const;
+		void resolveData(flashmapper::DataBlock& block);
+
 	public:
 		flashmapper::map<Id, NodeType> elementIds;
-		NodeTypeSet containedTypes;
 		flashmapper::map<wchar_t, long> edges;
+		NodeTypeSet containedTypes;
 	};
 
-	struct SearchEdge
+	struct SearchEdge : flashmapper::ComplexMapper
 	{
 		SearchEdge(): SearchEdge(0, L"") {}
 		SearchEdge(long target, std::wstring s): target(target), s(s.c_str()) {}
 
+		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const;
+		void resolveData(flashmapper::DataBlock& block);
+
 	public:
-		long target;
 		flashmapper::wstring s;
 		flashmapper::set<wchar_t> gate;
+		long target;
 	};
 
 	struct SearchPath
