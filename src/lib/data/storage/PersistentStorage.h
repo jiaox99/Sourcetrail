@@ -293,6 +293,7 @@ private:
 	std::map<Id, Id> m_memberEdgeIdOrderMap;
 
 	HierarchyCache m_hierarchyCache;
+	flashmapper::Mapper m_hierarchyCacheMapper;
 
 	bool m_hasJavaFiles = false;
 };

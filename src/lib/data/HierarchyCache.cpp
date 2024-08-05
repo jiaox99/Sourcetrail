@@ -3,13 +3,64 @@
 #include "utility.h"
 
 HierarchyCache::HierarchyNode::HierarchyNode(Id nodeId)
-	: m_nodeId(nodeId), m_edgeId(0), m_parent(nullptr), m_isVisible(true), m_isImplicit(false)
+	: m_nodeId(nodeId), m_edgeId(0), m_parent(-1), m_isVisible(true), m_isImplicit(false)
 {
+}
+
+HierarchyCache::HierarchyNode::HierarchyNode(const HierarchyNode& other)
+{
+	m_nodeId = other.m_nodeId;
+	m_edgeId = other.m_edgeId;
+	m_parent = other.m_parent;
+	m_bases = other.m_bases;
+	m_baseEdgeIds = other.m_baseEdgeIds;
+	m_children = other.m_children;
+	m_isVisible = other.m_isVisible;
+	m_isImplicit = other.m_isImplicit;
+}
+
+HierarchyCache::HierarchyNode& HierarchyCache::HierarchyNode::operator=(const HierarchyNode& other)
+{
+	if (this != &other)
+	{
+		m_nodeId = other.m_nodeId;
+		m_edgeId = other.m_edgeId;
+		m_parent = other.m_parent;
+		m_bases = other.m_bases;
+		m_baseEdgeIds = other.m_baseEdgeIds;
+		m_children = other.m_children;
+		m_isVisible = other.m_isVisible;
+		m_isImplicit = other.m_isImplicit;
+	}
+
+	return *this;
 }
 
 Id HierarchyCache::HierarchyNode::getNodeId() const
 {
 	return m_nodeId;
+}
+
+flashmapper::Address HierarchyCache::HierarchyNode::writeData(
+	flashmapper::Mapper& mapper, flashmapper::DataBlock& block)
+{
+	mapper.writeData(m_nodeId, block);
+	mapper.writeData(m_edgeId, block);
+	mapper.writeData(m_parent, block);
+	mapper.writeData(m_bases, block);
+	mapper.writeData(m_baseEdgeIds, block);
+	mapper.writeData(m_children, block);
+	mapper.writeData(m_isVisible, block);
+	mapper.writeData(m_isImplicit, block);
+
+	return block.baseOffset + block.cursor;
+}
+
+void HierarchyCache::HierarchyNode::resolveData(flashmapper::DataBlock& block)
+{
+	m_bases.resolveData(block);
+	m_baseEdgeIds.resolveData(block);
+	m_children.resolveData(block);
 }
 
 Id HierarchyCache::HierarchyNode::getEdgeId() const
@@ -22,23 +73,23 @@ void HierarchyCache::HierarchyNode::setEdgeId(Id edgeId)
 	m_edgeId = edgeId;
 }
 
-HierarchyCache::HierarchyNode* HierarchyCache::HierarchyNode::getParent() const
+size_t HierarchyCache::HierarchyNode::getParent() const
 {
 	return m_parent;
 }
 
-void HierarchyCache::HierarchyNode::setParent(HierarchyNode* parent)
+void HierarchyCache::HierarchyNode::setParent(size_t parent)
 {
 	m_parent = parent;
 }
 
-void HierarchyCache::HierarchyNode::addBase(HierarchyNode* base, Id edgeId)
+void HierarchyCache::HierarchyNode::addBase(size_t base, Id edgeId)
 {
 	m_bases.push_back(base);
 	m_baseEdgeIds.push_back(edgeId);
 }
 
-void HierarchyCache::HierarchyNode::addChild(HierarchyNode* child)
+void HierarchyCache::HierarchyNode::addChild(size_t child)
 {
 	m_children.push_back(child);
 }
@@ -48,11 +99,13 @@ size_t HierarchyCache::HierarchyNode::getChildrenCount() const
 	return m_children.size();
 }
 
-size_t HierarchyCache::HierarchyNode::getNonImplicitChildrenCount() const
+size_t HierarchyCache::getNonImplicitChildrenCount(HierarchyNode* node) const
 {
 	size_t count = 0;
-	for (const HierarchyNode* child: m_children)
+	flashmapper::vector<size_t>& children = *node->getChildren();
+	for (size_t i=0; i<children.size(); i++)
 	{
+		HierarchyNode* child = m_nodes.getByIndex(children[i]);
 		if (!child->isImplicit())
 		{
 			count++;
@@ -61,20 +114,25 @@ size_t HierarchyCache::HierarchyNode::getNonImplicitChildrenCount() const
 	return count;
 }
 
-void HierarchyCache::HierarchyNode::addChildIds(std::vector<Id>* nodeIds, std::vector<Id>* edgeIds) const
+void HierarchyCache::addChildIds(HierarchyNode* node, std::vector<Id>* nodeIds, std::vector<Id>* edgeIds) const
 {
-	for (const HierarchyNode* child: m_children)
+	flashmapper::vector<size_t>& children = *node->getChildren();
+	for (size_t i = 0; i < children.size(); i++)
 	{
+		HierarchyNode* child = m_nodes.getByIndex(children[i]);
 		nodeIds->push_back(child->getNodeId());
 		edgeIds->push_back(child->getEdgeId());
 	}
 }
 
-void HierarchyCache::HierarchyNode::addNonImplicitChildIds(
+void HierarchyCache::addNonImplicitChildIds(
+	HierarchyNode* node,
 	std::vector<Id>* nodeIds, std::vector<Id>* edgeIds) const
 {
-	for (const HierarchyNode* child: m_children)
+	flashmapper::vector<size_t>& children = *node->getChildren();
+	for (size_t i = 0; i < children.size(); i++)
 	{
+		HierarchyNode* child = m_nodes.getByIndex(children[i]);
 		if (!child->isImplicit())
 		{
 			nodeIds->push_back(child->getNodeId());
@@ -83,14 +141,17 @@ void HierarchyCache::HierarchyNode::addNonImplicitChildIds(
 	}
 }
 
-void HierarchyCache::HierarchyNode::addChildIdsRecursive(std::set<Id>* nodeIds, std::set<Id>* edgeIds) const
+void HierarchyCache::addChildIdsRecursive(
+	HierarchyNode* node, std::set<Id>* nodeIds, std::set<Id>* edgeIds) const
 {
-	for (const HierarchyNode* child: m_children)
+	flashmapper::vector<size_t>& children = *node->getChildren();
+	for (size_t i = 0; i < children.size(); i++)
 	{
+		HierarchyNode* child = m_nodes.getByIndex(children[i]);
 		nodeIds->insert(child->getNodeId());
 		edgeIds->insert(child->getEdgeId());
 
-		child->addChildIdsRecursive(nodeIds, edgeIds);
+		addChildIdsRecursive(child, nodeIds, edgeIds);
 	}
 }
 
@@ -114,30 +175,70 @@ void HierarchyCache::HierarchyNode::setIsImplicit(bool isImplicit)
 	m_isImplicit = isImplicit;
 }
 
+HierarchyCache::HierarchyNode::~HierarchyNode()
+{
+	std::cout << "HierarchyNode::~HierarchyNode()" << std::endl;
+}
+
 std::map</*target*/ Id, std::vector<std::pair</*source*/ Id, /*edge*/ Id>>>
-HierarchyCache::HierarchyNode::getReverseReachableInheritanceSubgraph() const
+HierarchyCache::getReverseReachableInheritanceSubgraph(HierarchyNode* sourceNode) const
 {
 	std::map<Id, std::vector<std::pair<Id, Id>>> reverseGraph;
-	reverseGraph.try_emplace(getNodeId());  // mark start node as visited
-	getReverseReachableInheritanceSubgraphHelper(reverseGraph);
+	reverseGraph.try_emplace(sourceNode->getNodeId());	// mark start node as visited
+	getReverseReachableInheritanceSubgraphHelper(sourceNode, reverseGraph);
 	return reverseGraph;
 }
 
-void HierarchyCache::HierarchyNode::getReverseReachableInheritanceSubgraphHelper(
+void HierarchyCache::getReverseReachableInheritanceSubgraphHelper(
+	HierarchyNode* sourceNode,
 	std::map</*target*/ Id, std::vector<std::pair</*source*/ Id, /*edge*/ Id>>>& reverseGraph) const
 {
-	for (size_t i = 0; i < m_bases.size(); ++i)
+	flashmapper::vector<size_t>& m_bases = *sourceNode->getBases();
+	for (size_t i = 0; i < sourceNode->getBases()->size(); ++i)
 	{
-		HierarchyNode* base = m_bases[i];
-		auto emplacedBase = reverseGraph.try_emplace(base->getNodeId());
-		emplacedBase.first->second.push_back({getNodeId(), m_baseEdgeIds[i]});
+		size_t base = m_bases[i];
+		HierarchyNode* baseNode = m_nodes.getByIndex(base);
+		auto emplacedBase = reverseGraph.try_emplace(baseNode->getNodeId());
+		const Id nodeId = baseNode->getNodeId();
+		const Id edgeId = (*baseNode->getBaseEdgeIds())[i];
+		emplacedBase.first->second.push_back({nodeId, edgeId});
 		if (emplacedBase.second)
 		{
-			base->getReverseReachableInheritanceSubgraphHelper(reverseGraph);
+			getReverseReachableInheritanceSubgraphHelper(baseNode, reverseGraph);
 		}
 	}
 }
 
+flashmapper::Address HierarchyCache::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const
+{
+	mapper.writeData(m_nodes, block);
+
+	return block.baseOffset + block.cursor;
+}
+
+void HierarchyCache::resolveData(flashmapper::DataBlock& block)
+{
+	m_nodes.resolveData(block);
+}
+
+void HierarchyCache::load(std::string filePath, flashmapper::Mapper& mapper)
+{
+	m_nodes.clear();
+
+	mapper.readFromFile(filePath.c_str());
+	HierarchyCache* hierarchy = mapper.readData<HierarchyCache>();
+	m_nodes = std::move(hierarchy->m_nodes);
+}
+
+void HierarchyCache::save(std::string filePath, flashmapper::Mapper& mapper)
+{
+	mapper.reset();
+	flashmapper::DataBlock block = mapper.requestBlock(sizeof(HierarchyCache));
+	mapper.writeData(*this, block);
+	block.align();
+	assert(block.postValidate());
+	mapper.writeToFile(filePath.c_str());
+}
 
 void HierarchyCache::clear()
 {
@@ -152,11 +253,12 @@ void HierarchyCache::createConnection(
 		return;
 	}
 
-	HierarchyNode* from = createNode(fromId);
+	createNode(fromId);
 	HierarchyNode* to = createNode(toId);
+	HierarchyNode* from = getNode(fromId);
 
-	from->addChild(to);
-	to->setParent(from);
+	from->addChild(m_nodes.findIndex(toId));
+	to->setParent(m_nodes.findIndex(fromId));
 
 	from->setIsVisible(sourceVisible);
 	from->setIsImplicit(sourceImplicit);
@@ -172,21 +274,27 @@ void HierarchyCache::createInheritance(Id edgeId, Id fromId, Id toId)
 		return;
 	}
 
-	HierarchyNode* from = createNode(fromId);
+	createNode(fromId);
 	HierarchyNode* to = createNode(toId);
+	HierarchyNode* from = getNode(fromId);
 
-	from->addBase(to, edgeId);
+	from->addBase(m_nodes.findIndex(toId), edgeId);
 }
 
 Id HierarchyCache::getLastVisibleParentNodeId(Id nodeId) const
 {
 	HierarchyNode* node = nullptr;
-	HierarchyNode* parent = getNode(nodeId);
+	HierarchyNode* parentNode = getNode(nodeId);
 
-	while (parent && parent->isVisible())
+	while (parentNode && parentNode->isVisible())
 	{
-		node = parent;
-		parent = node->getParent();
+		node = parentNode;
+		size_t parent = node->getParent();
+		if (parent == INVALID_INDEX)
+		{
+			break;
+		}
+		parentNode = m_nodes.getByIndex(parent);
 
 		nodeId = node->getNodeId();
 	}
@@ -197,15 +305,20 @@ Id HierarchyCache::getLastVisibleParentNodeId(Id nodeId) const
 size_t HierarchyCache::getIndexOfLastVisibleParentNode(Id nodeId) const
 {
 	HierarchyNode* node = nullptr;
-	HierarchyNode* parent = getNode(nodeId);
+	HierarchyNode* parentNode = getNode(nodeId);
 
 	size_t idx = 0;
 	bool visible = false;
 
-	while (parent)
+	while (parentNode)
 	{
-		node = parent;
-		parent = node->getParent();
+		node = parentNode;
+		size_t parent = node->getParent();
+		if (parent == INVALID_INDEX)
+		{
+			break;
+		}
+		parentNode = m_nodes.getByIndex(parent);
 
 		if (node->isVisible() && !idx)
 		{
@@ -235,7 +348,12 @@ void HierarchyCache::addAllVisibleParentIdsForNodeId(
 		nodeIds->insert(node->getNodeId());
 		edgeId = node->getEdgeId();
 
-		node = node->getParent();
+		size_t parent = node->getParent();
+		if (parent == INVALID_INDEX)
+		{
+			break;
+		}
+		node = m_nodes.getByIndex(parent);
 	}
 }
 
@@ -244,7 +362,7 @@ void HierarchyCache::addAllChildIdsForNodeId(Id nodeId, std::set<Id>* nodeIds, s
 	HierarchyNode* node = getNode(nodeId);
 	if (node && node->isVisible())
 	{
-		node->addChildIdsRecursive(nodeIds, edgeIds);
+		addChildIdsRecursive(node, nodeIds, edgeIds);
 	}
 }
 
@@ -256,11 +374,11 @@ void HierarchyCache::addFirstChildIdsForNodeId(
 	{
 		if (node->isImplicit())
 		{
-			node->addChildIds(nodeIds, edgeIds);
+			addChildIds(node, nodeIds, edgeIds);
 		}
 		else
 		{
-			node->addNonImplicitChildIds(nodeIds, edgeIds);
+			addNonImplicitChildIds(node, nodeIds, edgeIds);
 		}
 	}
 }
@@ -276,7 +394,7 @@ size_t HierarchyCache::getFirstChildIdsCountForNodeId(Id nodeId) const
 		}
 		else
 		{
-			return node->getNonImplicitChildrenCount();
+			return getNonImplicitChildrenCount(node);
 		}
 	}
 	return 0;
@@ -295,7 +413,8 @@ bool HierarchyCache::isChildOfVisibleNodeOrInvisible(Id nodeId) const
 		return true;
 	}
 
-	if (node->getParent() && node->getParent()->isVisible())
+	size_t parent = node->getParent();
+	if (parent != INVALID_INDEX && m_nodes.getByIndex(parent)->isVisible())
 	{
 		return true;
 	}
@@ -376,7 +495,7 @@ HierarchyCache::getInheritanceEdgesForNodeId(
 	}
 
 	std::map<Id, std::vector<std::pair<Id, Id>>> reverseGraph
-		= sourceNode->getReverseReachableInheritanceSubgraph();
+		= getReverseReachableInheritanceSubgraph(sourceNode);
 
 	for (Id targetId : targetIds)
 	{
@@ -425,7 +544,7 @@ HierarchyCache::HierarchyNode* HierarchyCache::getNode(Id nodeId) const
 
 	if (it != m_nodes.end())
 	{
-		return it->second.get();
+		return it->second;
 	}
 
 	return nullptr;
@@ -437,8 +556,8 @@ HierarchyCache::HierarchyNode* HierarchyCache::createNode(Id nodeId)
 
 	if (it == m_nodes.end())
 	{
-		it = m_nodes.emplace(nodeId, std::make_unique<HierarchyNode>(nodeId)).first;
+		return &m_nodes.emplace(nodeId, HierarchyNode(nodeId));
 	}
 
-	return it->second.get();
+	return it->second;
 }

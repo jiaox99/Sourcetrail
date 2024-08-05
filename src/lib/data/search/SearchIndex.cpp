@@ -35,7 +35,7 @@ void SearchIndex::addNode(Id id, std::wstring name, NodeType type)
 		auto it = currentNode->edges.find(name[0]);
 		if (it != currentNode->edges.end())
 		{
-			size_t currentEdgeI = it->second;
+			size_t currentEdgeI = *it->second;
 			SearchEdge* currentEdge = &m_edges[currentEdgeI];
 			const flashmapper::wstring& edgeString = currentEdge->s;
 
@@ -91,7 +91,7 @@ void SearchIndex::finishSetup()
 {
 	for (auto& p: m_nodes[0].edges)
 	{
-		populateEdgeGate(&m_edges[p.second]);
+		populateEdgeGate(&m_edges[*p.second]);
 	}
 }
 
@@ -158,7 +158,7 @@ void SearchIndex::populateEdgeGate(SearchEdge* e)
 {
 	for (auto& p: m_nodes[e->target].edges)
 	{
-		SearchEdge* targetEdge = &m_edges[p.second];
+		SearchEdge* targetEdge = &m_edges[*p.second];
 		populateEdgeGate(targetEdge);
 #if 0
 		std::cout << "PreGate:" << std::endl;
@@ -190,7 +190,7 @@ void SearchIndex::searchRecursive(
 {
 	for (const auto& p: path.node->edges)
 	{
-		const SearchEdge* currentEdge = &m_edges[p.second];
+		const SearchEdge* currentEdge = &m_edges[*p.second];
 
 		if (!acceptedNodeTypes.intersectsWith(m_nodes[currentEdge->target].containedTypes))
 		{
@@ -267,7 +267,7 @@ std::multiset<SearchResult> SearchIndex::createScoredResults(
 					std::vector<Id> elementIds;
 					for (const auto& p: path.node->elementIds)
 					{
-						if (acceptedNodeTypes.contains(p.second))
+						if (acceptedNodeTypes.contains(*p.second))
 						{
 							elementIds.push_back(p.first);
 						}
@@ -290,7 +290,7 @@ std::multiset<SearchResult> SearchIndex::createScoredResults(
 
 				for (auto p: path.node->edges)
 				{
-					const SearchEdge* edge = &m_edges[p.second];
+					const SearchEdge* edge = &m_edges[*p.second];
 					nextPaths.emplace_back((path.text + edge->s).data(), path.indices, &m_nodes[edge->target]);
 				}
 			}
@@ -588,7 +588,7 @@ bool SearchIndex::isNoLetter(const wchar_t c)
 	return false;
 }
 
-flashmapper::Address SearchIndex::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const
+flashmapper::Address SearchIndex::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block)
 {
 	mapper.writeData(m_nodes, block);
 	mapper.writeData(m_edges, block);
@@ -603,7 +603,7 @@ void SearchIndex::resolveData(flashmapper::DataBlock& block)
 	m_edges.resolveData(block);
 }
 
-flashmapper::Address SearchIndex::SearchNode::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const
+flashmapper::Address SearchIndex::SearchNode::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block)
 {
 	mapper.writeData(elementIds, block);
 	mapper.writeData(edges, block);
@@ -618,7 +618,7 @@ void SearchIndex::SearchNode::resolveData(flashmapper::DataBlock& block)
 	edges.resolveData(block);
 }
 
-flashmapper::Address SearchIndex::SearchEdge::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const
+flashmapper::Address SearchIndex::SearchEdge::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block)
 {
 	mapper.writeData(s, block);
 	mapper.writeData(gate, block);

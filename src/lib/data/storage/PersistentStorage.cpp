@@ -3339,13 +3339,16 @@ void PersistentStorage::buildSearchIndex()
 
 	const FilePath dbPath = getIndexDbFilePath();
 	const FilePath symbolIndexPath = dbPath.getParentDirectory().getConcatenated(FilePath("symbols.idx"));
-
 	const FilePath fileIndexPath = dbPath.getParentDirectory().getConcatenated(FilePath("files.idx"));
 
 	if (symbolIndexPath.exists())
 	{
 		m_symbolIndex.load(symbolIndexPath.str(), m_symbolIndexMapper);
 		m_fileIndex.load(fileIndexPath.str(), m_fileIndexMapper);
+
+#if _FlashMapper_Statics_Enable
+		flashmapper::printStaticsInfo();
+#endif // #if _FlashMapper_Statics_Enable
 		return;
 	}
 
@@ -3527,6 +3530,15 @@ void PersistentStorage::buildHierarchyCache()
 {
 	TRACE();
 
+	const FilePath dbPath = getIndexDbFilePath();
+	const FilePath hierarchyCachePath = dbPath.getParentDirectory().getConcatenated(
+		FilePath("hierarchy.idx"));
+	if (hierarchyCachePath.exists())
+	{
+		m_hierarchyCache.load(hierarchyCachePath.str(), m_hierarchyCacheMapper);
+		return;
+	}
+
 	std::vector<Id> sourceNodeIds;
 	std::vector<StorageEdge> memberEdges;
 
@@ -3581,4 +3593,6 @@ void PersistentStorage::buildHierarchyCache()
 		Edge::typeToInt(Edge::EDGE_INHERITANCE), [this](StorageEdge&& edge) {
 			m_hierarchyCache.createInheritance(edge.id, edge.sourceNodeId, edge.targetNodeId);
 		});
+
+	m_hierarchyCache.save(hierarchyCachePath.str(), m_hierarchyCacheMapper);
 }

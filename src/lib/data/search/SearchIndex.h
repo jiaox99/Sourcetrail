@@ -44,7 +44,7 @@ public:
 	SearchIndex();
 	~SearchIndex();
 
-	flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const;
+	flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block);
 	void resolveData(flashmapper::DataBlock& block);
 
 	void addNode(Id id, std::wstring name, NodeType type = NodeType(NODE_SYMBOL));
@@ -70,7 +70,7 @@ private:
 
 		SearchNode(NodeTypeSet containedTypes): containedTypes(containedTypes) {}
 
-		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const;
+		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block);
 		void resolveData(flashmapper::DataBlock& block);
 
 	public:
@@ -84,7 +84,7 @@ private:
 		SearchEdge(): SearchEdge(0, L"") {}
 		SearchEdge(long target, std::wstring s): target(target), s(s.c_str()) {}
 
-		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block) const;
+		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block);
 		void resolveData(flashmapper::DataBlock& block);
 
 	public:
