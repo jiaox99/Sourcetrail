@@ -74,8 +74,8 @@ private:
 		void resolveData(flashmapper::DataBlock& block);
 
 	public:
-		flashmapper::map<Id, NodeType> elementIds;
-		flashmapper::map<wchar_t, long> edges;
+		flashmapper::map<Id, NodeType, uint16_t> elementIds;
+		flashmapper::map<wchar_t, long, uint16_t> edges;
 		NodeTypeSet containedTypes;
 	};
 
@@ -89,7 +89,7 @@ private:
 
 	public:
 		flashmapper::wstring s;
-		flashmapper::set<wchar_t> gate;
+		flashmapper::set<wchar_t, uint16_t> gate;
 		long target;
 	};
 

@@ -177,7 +177,7 @@ void HierarchyCache::HierarchyNode::setIsImplicit(bool isImplicit)
 
 HierarchyCache::HierarchyNode::~HierarchyNode()
 {
-	std::cout << "HierarchyNode::~HierarchyNode()" << std::endl;
+	//std::cout << "HierarchyNode::~HierarchyNode()" << std::endl;
 }
 
 std::map</*target*/ Id, std::vector<std::pair</*source*/ Id, /*edge*/ Id>>>
