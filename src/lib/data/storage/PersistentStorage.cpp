@@ -358,14 +358,7 @@ void PersistentStorage::clearCaches()
 	m_symbolIndex.clear();
 	m_fileIndex.clear();
 
-	m_fileNodeIds.clear();
-	m_lowerCasefileNodeIds.clear();
-	m_fileNodePaths.clear();
-	m_fileNodeComplete.clear();
-	m_fileNodeIndexed.clear();
-	m_fileNodeLanguage.clear();
-	m_symbolDefinitionKinds.clear();
-
+	m_filePathMapCache.clear();
 	m_hierarchyCache.clear();
 	m_fullTextSearchIndex.clear();
 	m_fullTextSearchCodec = "";
@@ -462,9 +455,9 @@ std::set<FilePath> PersistentStorage::getIncompleteFiles() const
 	TRACE();
 
 	std::set<FilePath> incompleteFiles;
-	for (auto p: m_fileNodeComplete)
+	for (auto p: m_filePathMapCache.m_fileNodeComplete)
 	{
-		if (p.second == false)
+		if (*p.second == false)
 		{
 			incompleteFiles.insert(getFileNodePath(p.first));
 		}
@@ -912,7 +905,7 @@ std::vector<SearchMatch> PersistentStorage::getAutocompletionSymbolMatches(
 		match.typeName = match.nodeType.getReadableTypeWString();
 		match.searchType = SearchMatch::SEARCH_TOKEN;
 
-		if (m_symbolDefinitionKinds.find(firstNode->id) == m_symbolDefinitionKinds.end())
+		if (m_filePathMapCache.m_symbolDefinitionKinds.find(firstNode->id) == m_filePathMapCache.m_symbolDefinitionKinds.end())
 		{
 			match.typeName = L"non-indexed " + match.typeName;
 		}
@@ -1063,7 +1056,7 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForAll() const
 	const int nodeCount = m_sqliteIndexStorage.getNodeCount(true);
 	if (nodeCount < 100000)
 	{
-		const size_t sdk_size = m_symbolDefinitionKinds.size();
+		const size_t sdk_size = m_filePathMapCache.m_symbolDefinitionKinds.size();
 		m_sqliteIndexStorage.beginTransaction();
 		m_sqliteIndexStorage.forEach<StorageNode>(
 			[&, sdk_size](StorageNode&& storageNode)
@@ -1071,8 +1064,8 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForAll() const
 				const NodeType type(intToNodeKind(storageNode.type));
 				if (type.isFile())
 				{
-					auto fn_it = m_fileNodeIndexed.find(storageNode.id);
-					if (fn_it != m_fileNodeIndexed.end() && fn_it->second)
+					auto fn_it = m_filePathMapCache.m_fileNodeIndexed.find(storageNode.id);
+					if (fn_it != m_filePathMapCache.m_fileNodeIndexed.end() && fn_it->second)
 					{
 						addFileNodeToGraph(storageNode, graph.get());
 					}
@@ -1082,9 +1075,9 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForAll() const
 					bool showNode = true;
 					if (sdk_size)
 					{
-						auto it = m_symbolDefinitionKinds.find(storageNode.id);
+						auto it = m_filePathMapCache.m_symbolDefinitionKinds.find(storageNode.id);
 						showNode =
-							(it != m_symbolDefinitionKinds.end() && it->second == DEFINITION_EXPLICIT);
+							(it != m_filePathMapCache.m_symbolDefinitionKinds.end() && *it->second == DEFINITION_EXPLICIT);
 					}
 					if (showNode &&
 						(type.isPackage() ||
@@ -1115,8 +1108,8 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForNodeTypes(NodeTypeSet nodeT
 			{
 				if (nodeTypes.contains(NodeType(intToNodeKind(node.type))))
 				{
-					auto it = m_symbolDefinitionKinds.find(node.id);
-					if (it != m_symbolDefinitionKinds.end() && it->second == DEFINITION_EXPLICIT)
+					auto it = m_filePathMapCache.m_symbolDefinitionKinds.find(node.id);
+					if (it != m_filePathMapCache.m_symbolDefinitionKinds.end() && *it->second == DEFINITION_EXPLICIT)
 					{
 						tokenIds.push_back(node.id);
 					}
@@ -1125,7 +1118,7 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForNodeTypes(NodeTypeSet nodeT
 
 		if (nodeTypes.containsMatching([](const NodeType& type) { return type.isFile(); }))
 		{
-			for (const auto& p: m_fileNodePaths)
+			for (const auto& p: m_filePathMapCache.m_fileNodePaths)
 			{
 				tokenIds.push_back(p.first);
 			}
@@ -1444,16 +1437,16 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForTrail(
 					{
 						if (kind == NODE_FILE)
 						{
-							auto it = m_fileNodeIndexed.find(node.id);
-							if (it == m_fileNodeIndexed.end() || !it->second)
+							auto it = m_filePathMapCache.m_fileNodeIndexed.find(node.id);
+							if (it == m_filePathMapCache.m_fileNodeIndexed.end() || !it->second)
 							{
 								continue;
 							}
 						}
 						else
 						{
-							auto it = m_symbolDefinitionKinds.find(node.id);
-							if (it == m_symbolDefinitionKinds.end() || it->second == DEFINITION_NONE)
+							auto it = m_filePathMapCache.m_symbolDefinitionKinds.find(node.id);
+							if (it == m_filePathMapCache.m_symbolDefinitionKinds.end() || *it->second == DEFINITION_NONE)
 							{
 								continue;
 							}
@@ -1630,8 +1623,8 @@ std::vector<Id> PersistentStorage::getNodeIdsForLocationIds(const std::vector<Id
 			elementId = edge.targetNodeId;
 		}
 
-		auto it = m_symbolDefinitionKinds.find(elementId);
-		if ((it != m_symbolDefinitionKinds.end() && it->second == DEFINITION_IMPLICIT) ||
+		auto it = m_filePathMapCache.m_symbolDefinitionKinds.find(elementId);
+		if ((it != m_filePathMapCache.m_symbolDefinitionKinds.end() && *it->second == DEFINITION_IMPLICIT) ||
 			Edge::intToType(edge.type) == Edge::EDGE_OVERRIDE)
 		{
 			implicitNodeIds.insert(elementId);
@@ -1665,7 +1658,7 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getSourceLocationsF
 		FilePath path = getFileNodePath(tokenId);
 
 		// check for non-indexed file
-		if (path.empty() && m_symbolDefinitionKinds.find(tokenId) == m_symbolDefinitionKinds.end())
+		if (path.empty() && m_filePathMapCache.m_symbolDefinitionKinds.find(tokenId) == m_filePathMapCache.m_symbolDefinitionKinds.end())
 		{
 			const StorageNode fileNode = m_sqliteIndexStorage.getNodeById(tokenId);
 			if (NodeType(intToNodeKind(fileNode.type)).isFile())
@@ -2622,18 +2615,17 @@ Id PersistentStorage::getFileNodeId(const FilePath& filePath) const
 	}
 
 	{
-		std::map<FilePath, Id>::const_iterator it = m_fileNodeIds.find(filePath);
-		if (it != m_fileNodeIds.end())
+		Id* id = m_filePathMapCache.m_fileNodeIds.get(filePath.wstr().c_str());
+		if (id != nullptr)
 		{
-			return it->second;
+			return *id;
 		}
 	}
 	{
-		std::map<FilePath, Id>::const_iterator it = m_lowerCasefileNodeIds.find(
-			filePath.getLowerCase());
-		if (it != m_lowerCasefileNodeIds.end())
+		Id* id = m_filePathMapCache.m_lowerCasefileNodeIds.get(filePath.getLowerCase().wstr().c_str());
+		if (id != nullptr)
 		{
-			return it->second;
+			return *id;
 		}
 	}
 
@@ -2668,11 +2660,11 @@ FilePath PersistentStorage::getFileNodePath(Id fileId) const
 		return FilePath();
 	}
 
-	std::map<Id, FilePath>::const_iterator it = m_fileNodePaths.find(fileId);
+	auto it = m_filePathMapCache.m_fileNodePaths.find(fileId);
 
-	if (it != m_fileNodePaths.end())
+	if (it != m_filePathMapCache.m_fileNodePaths.end())
 	{
-		return it->second;
+		return FilePath(std::wstring(it->second->data()));
 	}
 
 	return FilePath();
@@ -2680,10 +2672,10 @@ FilePath PersistentStorage::getFileNodePath(Id fileId) const
 
 bool PersistentStorage::getFileNodeComplete(Id fileId) const
 {
-	auto it = m_fileNodeComplete.find(fileId);
-	if (it != m_fileNodeComplete.end())
+	auto it = m_filePathMapCache.m_fileNodeComplete.find(fileId);
+	if (it != m_filePathMapCache.m_fileNodeComplete.end())
 	{
-		return it->second;
+		return *it->second;
 	}
 
 	return false;
@@ -2691,10 +2683,10 @@ bool PersistentStorage::getFileNodeComplete(Id fileId) const
 
 bool PersistentStorage::getFileNodeIndexed(Id fileId) const
 {
-	auto it = m_fileNodeIndexed.find(fileId);
-	if (it != m_fileNodeIndexed.end())
+	auto it = m_filePathMapCache.m_fileNodeIndexed.find(fileId);
+	if (it != m_filePathMapCache.m_fileNodeIndexed.end())
 	{
-		return it->second;
+		return *it->second;
 	}
 
 	return false;
@@ -2702,10 +2694,10 @@ bool PersistentStorage::getFileNodeIndexed(Id fileId) const
 
 std::wstring PersistentStorage::getFileNodeLanguage(Id fileId) const
 {
-	auto it = m_fileNodeLanguage.find(fileId);
-	if (it != m_fileNodeLanguage.end())
+	auto it = m_filePathMapCache.m_fileNodeLanguage.find(fileId);
+	if (it != m_filePathMapCache.m_fileNodeLanguage.end())
 	{
-		return it->second;
+		return std::wstring(it->second->data());
 	}
 
 	return L"";
@@ -2946,10 +2938,10 @@ void PersistentStorage::addNodeToGraph(
 {
 	NameHierarchy nameHierarchy = NameHierarchy::deserialize(newNode.serializedName);
 	DefinitionKind defKind = DEFINITION_NONE;
-	auto it = m_symbolDefinitionKinds.find(newNode.id);
-	if (it != m_symbolDefinitionKinds.end())
+	auto it = m_filePathMapCache.m_symbolDefinitionKinds.find(newNode.id);
+	if (it != m_filePathMapCache.m_symbolDefinitionKinds.end())
 	{
-		defKind = it->second;
+		defKind = *it->second;
 	}
 
 	Node* node = graph->createNode(newNode.id, type, std::move(nameHierarchy), defKind);
@@ -3162,8 +3154,8 @@ void PersistentStorage::addFileContentsToGraph(Id fileId, Graph* graph) const
 		{
 			if (tokenIdsSet.insert(tokenId).second)
 			{
-				auto it = m_symbolDefinitionKinds.find(tokenId);
-				if (it == m_symbolDefinitionKinds.end() || it->second != DEFINITION_IMPLICIT)
+				auto it = m_filePathMapCache.m_symbolDefinitionKinds.find(tokenId);
+				if (it == m_filePathMapCache.m_symbolDefinitionKinds.end() || *it->second != DEFINITION_IMPLICIT)
 				{
 					tokenIds.push_back(tokenId);
 				}
@@ -3312,25 +3304,41 @@ void PersistentStorage::buildFilePathMaps()
 {
 	TRACE();
 
+	const FilePath dbPath = getIndexDbFilePath();
+	const FilePath filePathCachePath = dbPath.getParentDirectory().getConcatenated(FilePath("filepathcache.idx"));
+
+
+	if (filePathCachePath.exists())
+	{
+		m_filePathMapCache.load(filePathCachePath.str(), m_filePathMapCacheMapper);
+
+#if _FlashMapper_Statics_Enable
+		flashmapper::printStaticsInfo();
+#endif	  // #if _FlashMapper_Statics_Enable
+		return;
+	}
+
 	m_sqliteIndexStorage.forEach<StorageFile>([&](StorageFile&& file) {
 		const FilePath path(file.filePath);
 
-		m_fileNodeIds.emplace(path, file.id);
-		m_lowerCasefileNodeIds.emplace(path.getLowerCase(), file.id);
-		m_fileNodePaths.emplace(file.id, path);
-		m_fileNodeComplete.emplace(file.id, file.complete);
-		m_fileNodeIndexed.emplace(file.id, file.indexed);
-		m_fileNodeLanguage.emplace(file.id, file.languageIdentifier);
+		m_filePathMapCache.m_fileNodeIds.emplace(path.wstr().c_str(), file.id);
+		m_filePathMapCache.m_lowerCasefileNodeIds.emplace(path.getLowerCase().wstr().c_str(), file.id);
+		m_filePathMapCache.m_fileNodePaths.emplace(file.id, path.wstr().c_str());
+		m_filePathMapCache.m_fileNodeComplete.emplace(file.id, file.complete);
+		m_filePathMapCache.m_fileNodeIndexed.emplace(file.id, file.indexed);
+		m_filePathMapCache.m_fileNodeLanguage.emplace(file.id, file.languageIdentifier.c_str());
 
-		if (!m_hasJavaFiles && path.extension() == L".java")
+		if (!m_filePathMapCache.m_hasJavaFiles && path.extension() == L".java")
 		{
-			m_hasJavaFiles = true;
+			m_filePathMapCache.m_hasJavaFiles = true;
 		}
 	});
 
 	m_sqliteIndexStorage.forEach<StorageSymbol>([&](StorageSymbol&& symbol) {
-		m_symbolDefinitionKinds.emplace(symbol.id, intToDefinitionKind(symbol.definitionKind));
+		m_filePathMapCache.m_symbolDefinitionKinds.emplace(symbol.id, intToDefinitionKind(symbol.definitionKind));
 	});
+
+	m_filePathMapCache.save(filePathCachePath.str(), m_filePathMapCacheMapper);
 }
 
 void PersistentStorage::buildSearchIndex()
@@ -3362,10 +3370,10 @@ void PersistentStorage::buildSearchIndex()
 				return;
 			}
 
-			auto it = m_fileNodePaths.find(node.id);
-			if (it != m_fileNodePaths.end())
+			auto it = m_filePathMapCache.m_fileNodePaths.find(node.id);
+			if (it != m_filePathMapCache.m_fileNodePaths.end())
 			{
-				FilePath filePath(it->second);
+				FilePath filePath(std::wstring(it->second->data()));
 
 				if (filePath.exists())
 				{
@@ -3377,9 +3385,9 @@ void PersistentStorage::buildSearchIndex()
 		}
 		else
 		{
-			auto it = m_symbolDefinitionKinds.find(node.id);
+			auto it = m_filePathMapCache.m_symbolDefinitionKinds.find(node.id);
 			const DefinitionKind defKind =
-				(it != m_symbolDefinitionKinds.end() ? it->second : DEFINITION_NONE);
+				(it != m_filePathMapCache.m_symbolDefinitionKinds.end() ? *it->second : DEFINITION_NONE);
 			if (defKind != DEFINITION_IMPLICIT)
 			{
 				const NameHierarchy nameHierarchy = NameHierarchy::deserialize(node.serializedName);
@@ -3458,7 +3466,7 @@ void PersistentStorage::buildMemberEdgeIdOrderMap()
 {
 	TRACE();
 
-	if (!m_hasJavaFiles)
+	if (!m_filePathMapCache.m_hasJavaFiles)
 	{
 		return;
 	}
@@ -3492,7 +3500,8 @@ void PersistentStorage::buildMemberEdgeIdOrderMap()
 			continue;
 		}
 
-		const FilePath path(m_fileNodePaths[location.fileNodeId]);
+		flashmapper::wstring* pathStr = m_filePathMapCache.m_fileNodePaths.get(location.fileNodeId);
+		const FilePath path(std::wstring(pathStr->data()));
 		if (path.extension() == L".java")
 		{
 			collection.addSourceLocation(
@@ -3567,17 +3576,17 @@ void PersistentStorage::buildHierarchyCache()
 		}
 
 		bool sourceIsImplicit = false;
-		auto it = m_symbolDefinitionKinds.find(edge.sourceNodeId);
-		if (it != m_symbolDefinitionKinds.end())
+		auto it = m_filePathMapCache.m_symbolDefinitionKinds.find(edge.sourceNodeId);
+		if (it != m_filePathMapCache.m_symbolDefinitionKinds.end())
 		{
-			sourceIsImplicit = (it->second == DEFINITION_IMPLICIT);
+			sourceIsImplicit = (*it->second == DEFINITION_IMPLICIT);
 		}
 
 		bool targetIsImplicit = false;
-		it = m_symbolDefinitionKinds.find(edge.targetNodeId);
-		if (it != m_symbolDefinitionKinds.end())
+		it = m_filePathMapCache.m_symbolDefinitionKinds.find(edge.targetNodeId);
+		if (it != m_filePathMapCache.m_symbolDefinitionKinds.end())
 		{
-			targetIsImplicit = (it->second == DEFINITION_IMPLICIT);
+			targetIsImplicit = (*it->second == DEFINITION_IMPLICIT);
 		}
 
 		m_hierarchyCache.createConnection(

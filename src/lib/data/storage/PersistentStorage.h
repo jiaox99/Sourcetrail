@@ -215,6 +215,78 @@ private:
 		std::vector<StorageError> errors;
 	} m_storageData;
 
+	struct FilePathMapCache : public flashmapper::ComplexMapper
+	{
+		void clear()
+		{
+			m_fileNodeIds.clear();
+			m_lowerCasefileNodeIds.clear();
+			m_fileNodePaths.clear();
+			m_fileNodeComplete.clear();
+			m_fileNodeIndexed.clear();
+			m_fileNodeLanguage.clear();
+			m_symbolDefinitionKinds.clear();
+		}
+
+		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block)
+		{
+			mapper.writeData(m_fileNodeIds, block);
+			mapper.writeData(m_lowerCasefileNodeIds, block);
+			mapper.writeData(m_fileNodePaths, block);
+			mapper.writeData(m_fileNodeComplete, block);
+			mapper.writeData(m_fileNodeIndexed, block);
+			mapper.writeData(m_fileNodeLanguage, block);
+			mapper.writeData(m_symbolDefinitionKinds, block);
+			mapper.writeData(m_hasJavaFiles, block);
+			return block.baseOffset + block.cursor;
+		}
+
+		void resolveData(flashmapper::DataBlock& block)
+		{
+			m_fileNodeIds.resolveData(block);
+			m_lowerCasefileNodeIds.resolveData(block);
+			m_fileNodePaths.resolveData(block);
+			m_fileNodeComplete.resolveData(block);
+			m_fileNodeIndexed.resolveData(block);
+			m_fileNodeLanguage.resolveData(block);
+			m_symbolDefinitionKinds.resolveData(block);
+		}
+
+		void load(std::string filePath, flashmapper::Mapper& mapper)
+		{
+			clear();
+
+			mapper.readFromFile(filePath.c_str());
+			FilePathMapCache* cache = mapper.readData<FilePathMapCache>();
+			m_fileNodeIds = std::move(cache->m_fileNodeIds);
+			m_lowerCasefileNodeIds = std::move(cache->m_lowerCasefileNodeIds);
+			m_fileNodePaths = std::move(cache->m_fileNodePaths);
+			m_fileNodeComplete = std::move(cache->m_fileNodeComplete);
+			m_fileNodeIndexed = std::move(cache->m_fileNodeIndexed);
+			m_fileNodeLanguage = std::move(cache->m_fileNodeLanguage);
+			m_symbolDefinitionKinds = std::move(cache->m_symbolDefinitionKinds);
+		}
+
+		void save(std::string filePath, flashmapper::Mapper& mapper)
+		{
+			mapper.reset();
+			flashmapper::DataBlock block = mapper.requestBlock(sizeof(FilePathMapCache));
+			mapper.writeData(*this, block);
+			block.align();
+			assert(block.postValidate());
+			mapper.writeToFile(filePath.c_str());
+		}
+
+		flashmapper::hashmap<wchar_t, Id> m_fileNodeIds;
+		flashmapper::hashmap<wchar_t, Id> m_lowerCasefileNodeIds;
+		flashmapper::map<Id, flashmapper::wstring> m_fileNodePaths;
+		flashmapper::map<Id, bool> m_fileNodeComplete;
+		flashmapper::map<Id, bool> m_fileNodeIndexed;
+		flashmapper::map<Id, flashmapper::wstring> m_fileNodeLanguage;
+		flashmapper::map<Id, DefinitionKind> m_symbolDefinitionKinds;
+		bool m_hasJavaFiles = false;
+	};
+
 	Id getFileNodeId(const FilePath& filePath) const;
 	std::vector<Id> getFileNodeIds(const std::vector<FilePath>& filePaths) const;
 	std::set<Id> getFileNodeIds(const std::set<FilePath>& filePaths) const;
@@ -282,20 +354,13 @@ private:
 	SqliteIndexStorage m_sqliteIndexStorage;
 	SqliteBookmarkStorage m_sqliteBookmarkStorage;
 
-	std::map<FilePath, Id> m_fileNodeIds;
-	std::map<FilePath, Id> m_lowerCasefileNodeIds;
-	std::map<Id, FilePath> m_fileNodePaths;
-	std::map<Id, bool> m_fileNodeComplete;
-	std::unordered_map<Id, bool> m_fileNodeIndexed;
-	std::map<Id, std::wstring> m_fileNodeLanguage;
-
-	std::unordered_map<Id, DefinitionKind> m_symbolDefinitionKinds;
 	std::map<Id, Id> m_memberEdgeIdOrderMap;
 
 	HierarchyCache m_hierarchyCache;
 	flashmapper::Mapper m_hierarchyCacheMapper;
 
-	bool m_hasJavaFiles = false;
+	mutable FilePathMapCache m_filePathMapCache;
+	flashmapper::Mapper m_filePathMapCacheMapper;
 };
 
 #endif	  // PERSISTENT_STORAGE_H
