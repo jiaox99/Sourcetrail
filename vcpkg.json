@@ -1,0 +1,10 @@
+{
+  "dependencies": [
+    {
+      "name":"boost",
+      "version": "1.67"
+    },
+    "qt5",
+    "clang"
+  ]
+}
