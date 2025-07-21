@@ -1,0 +1,7 @@
+{
+  "dependencies": [
+    "boost",
+    "qt5",
+    "llvm"
+  ]
+}
