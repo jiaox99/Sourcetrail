@@ -1,6 +1,6 @@
 # FLAGS
-CLEAN_AND_SETUP=false
-REBUILD=false
+CLEAN_AND_SETUP=true
+REBUILD=true
 RUN_CODE_SIGNING=false
 UPDATE_DATABASES=false
 CREATE_WIX_INSTALLER=false
@@ -71,7 +71,7 @@ if [ $CLEAN_AND_SETUP = true ]; then
 	echo -e $INFO "$INFO Running cmake with 64 bit configuration"
 	mkdir -p build
 	cd build
-	cmake -G "Visual Studio 16 2019" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="F:/StudySpace/vcpkg/scripts/buildsystems/vcpkg.cmake" -DQt5_DIR=${Qt5_64_DIR} -DBUILD_CXX_LANGUAGE_PACKAGE=ON -DBUILD_JAVA_LANGUAGE_PACKAGE=OFF -DBUILD_PYTHON_LANGUAGE_PACKAGE=OFF ..
+	cmake -G "Visual Studio 17 2022" -DFlashMapper_DIR="F:/StudySpace/FlashMapper" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="F:/StudySpace/vcpkg/scripts/buildsystems/vcpkg.cmake" -DQt5_DIR=${Qt5_64_DIR} -DBUILD_CXX_LANGUAGE_PACKAGE=ON -DBUILD_JAVA_LANGUAGE_PACKAGE=OFF -DBUILD_PYTHON_LANGUAGE_PACKAGE=OFF ..
 	cd ..
 fi
 
@@ -85,7 +85,7 @@ fi
 
 # BUILDING THE EXECUTABLES
 echo -e "$INFO Building the project"
-"devenv.com" build/Sourcetrail.sln //build Release //project build/Sourcetrail.vcxproj
+"devenv.com" build/Sourcetrail.sln //build Release //project Sourcetrail
 
 if [ $RUN_CODE_SIGNING = true ]; then
 	echo -e "$INFO Signing the app"
