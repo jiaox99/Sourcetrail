@@ -75,8 +75,8 @@ private:
 		void clean();
 
 	public:
-		flashmapper::map<Id, NodeType, uint16_t> elementIds;
-		flashmapper::map<wchar_t, long, uint16_t> edges;
+		flashmapper::map<Id, NodeType, uint32_t> elementIds;
+		flashmapper::map<wchar_t, long, uint32_t> edges;
 		NodeTypeSet containedTypes;
 	};
 

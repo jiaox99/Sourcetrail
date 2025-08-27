@@ -219,8 +219,8 @@ private:
 	{
 		void clear()
 		{
-			m_fileNodeIds.clean();
-			m_lowerCasefileNodeIds.clean();
+			m_fileNodeIds.reset();
+			m_lowerCasefileNodeIds.reset();
 			m_fileNodePaths.clean();
 			m_fileNodeComplete.clean();
 			m_fileNodeIndexed.clean();
