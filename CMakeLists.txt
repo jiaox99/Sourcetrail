@@ -8,6 +8,7 @@ set(BUILD_JAVA_LANGUAGE_PACKAGE OFF CACHE BOOL "Add Java support to the Sourcetr
 set(BUILD_PYTHON_LANGUAGE_PACKAGE OFF CACHE BOOL "Add Python support to the Sourcetrail indexer.")
 set(DOCKER_BUILD OFF CACHE BOOL "Build runs in Docker")
 set(TREAT_WARNINGS_AS_ERRORS ON CACHE BOOL "Treat compiler warnings as errors")
+set(BUILD_REST_API_PACKAGE OFF CACHE BOOL "Add REST API support")
 
 #set (CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -43,6 +44,7 @@ set(APP_INDEXER_NAME "${PROJECT_NAME}_indexer")
 set(LIB_UTILITY_PROJECT_NAME "${PROJECT_NAME}_lib_utility")
 set(LIB_GUI_PROJECT_NAME "${PROJECT_NAME}_lib_gui")
 set(LIB_CXX_PROJECT_NAME "${PROJECT_NAME}_lib_cxx")
+set(LIB_REST_PROJECT_NAME "${PROJECT_NAME}_lib_rest")
 set(LIB_JAVA_PROJECT_NAME "${PROJECT_NAME}_lib_java")
 set(LIB_PYTHON_PROJECT_NAME "${PROJECT_NAME}_lib_python")
 set(LIB_PROJECT_NAME "${PROJECT_NAME}_lib")
@@ -219,6 +221,9 @@ if(Qt5Widgets_FOUND)
 	add_definitions (-DQT_DISABLE_DEPRECATED_BEFORE=${QT_MIN_VERSION_HEX})
 endif()
 
+# Drogon REST API ------------------------------------------------------------------------
+find_package(Drogon 1.9 REQUIRED)
+
 # Setup ---------------------------------------------------------------------------
 
 if (WIN32)
@@ -293,6 +298,7 @@ add_subdirectory(src/lib_cxx)
 add_subdirectory(src/lib_gui)
 add_subdirectory(src/lib_java)
 add_subdirectory(src/lib_python)
+add_subdirectory(src/lib_rest)
 add_subdirectory(src/lib_utility)
 add_subdirectory(src/test)
 
@@ -355,7 +361,7 @@ target_include_directories(${LIB_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
 
-target_link_libraries(${LIB_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${LIB_GUI_PROJECT_NAME} ${Boost_LIBRARIES})
+target_link_libraries(${LIB_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${Boost_LIBRARIES})
 
 #configure language package defines
 configure_file(
@@ -363,6 +369,21 @@ configure_file(
 	"${CMAKE_BINARY_DIR}/src/lib/language_packages.h"
 )
 
+
+# Lib Rest API ------------------------------------------------------------------
+
+if (BUILD_REST_API_PACKAGE)
+	add_library(${LIB_REST_PROJECT_NAME} ${LIB_REST_FILES})
+
+	create_source_groups(${LIB_REST_FILES})
+
+	target_include_directories(${LIB_REST_PROJECT_NAME} SYSTEM
+		PUBLIC ${DROGON_INCLUDE_DIRS}
+		${Boost_INCLUDE_DIRS}
+		"${EXTERNAL_INCLUDE_PATHS}"
+		"${EXTERNAL_C_INCLUDE_PATHS}"
+	)
+endif()
 
 # Lib Cxx ----------------------------------------------------------------------
 
@@ -728,6 +749,7 @@ target_link_libraries(
 	$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:${LIB_CXX_PROJECT_NAME}>
 	$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_PROJECT_NAME}>
 	$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_PROJECT_NAME}>
+	$<$<BOOL:${BUILD_REST_API_PACKAGE}>:${LIB_REST_PROJECT_NAME}>
 	${LIB_PROJECT_NAME}
 )
 
