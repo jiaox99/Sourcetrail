@@ -219,13 +219,13 @@ private:
 	{
 		void clear()
 		{
-			m_fileNodeIds.clear();
-			m_lowerCasefileNodeIds.clear();
-			m_fileNodePaths.clear();
-			m_fileNodeComplete.clear();
-			m_fileNodeIndexed.clear();
-			m_fileNodeLanguage.clear();
-			m_symbolDefinitionKinds.clear();
+			m_fileNodeIds.clean();
+			m_lowerCasefileNodeIds.clean();
+			m_fileNodePaths.clean();
+			m_fileNodeComplete.clean();
+			m_fileNodeIndexed.clean();
+			m_fileNodeLanguage.clean();
+			m_symbolDefinitionKinds.clean();
 		}
 
 		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block)

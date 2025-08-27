@@ -72,6 +72,7 @@ private:
 
 		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block);
 		void resolveData(flashmapper::DataBlock& block);
+		void clean();
 
 	public:
 		flashmapper::map<Id, NodeType, uint16_t> elementIds;
@@ -86,6 +87,7 @@ private:
 
 		flashmapper::Address writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block);
 		void resolveData(flashmapper::DataBlock& block);
+		void clean();
 
 	public:
 		flashmapper::wstring s;

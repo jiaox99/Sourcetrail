@@ -72,18 +72,25 @@ std::vector<std::wstring> IndexerCommandCxx::getCompilerFlagsForSystemHeaderSear
 	const std::vector<FilePath>& systemHeaderSearchPaths)
 {
 	std::vector<std::wstring> compilerFlags;
+	std::wstring pathTemp;
 	compilerFlags.reserve(systemHeaderSearchPaths.size() * 2);
 
 	for (const FilePath& path: systemHeaderSearchPaths)
 	{
-		compilerFlags.push_back(L"-isystem");
-		compilerFlags.push_back(path.wstr());
+		pathTemp.clear();
+		pathTemp.append(L"-isystem");
+		pathTemp.append(path.wstr());
+		//compilerFlags.push_back(L"-isystem");
+		compilerFlags.push_back(pathTemp.c_str());
 	}
 
 #ifdef _WIN32
 	// prepend clang system includes on windows
-	compilerFlags = utility::concat(
-		{L"-isystem", ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr()}, compilerFlags);
+	pathTemp.clear();
+	pathTemp.append(L"-isystem");
+	pathTemp.append(ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr());
+	compilerFlags = utility::concat({pathTemp}, compilerFlags);
+		//{L"-isystem", ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr()}, compilerFlags);
 #else
 	// append otherwise
 	compilerFlags.push_back(L"-isystem");
