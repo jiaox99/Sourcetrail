@@ -1,7 +1,19 @@
 {
+  "name": "sourcetrail",
+  "version": "2025.8.27",
   "dependencies": [
-    "boost",
-    "qt5",
-    "llvm"
-  ]
+    {
+      "name": "boost",
+      "version>=": "1.82.0"
+    },
+    {
+      "name": "qt5",
+      "version>=": "5.15.3"
+    },
+    {
+      "name": "llvm",
+      "version>=": "15.0.7"
+    }
+  ],
+  "builtin-baseline": "ddb818c9bc89583d0da8501dc2dabd5c2b6c7a09"
 }

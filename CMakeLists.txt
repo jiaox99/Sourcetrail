@@ -8,6 +8,7 @@ set(BUILD_JAVA_LANGUAGE_PACKAGE OFF CACHE BOOL "Add Java support to the Sourcetr
 set(BUILD_PYTHON_LANGUAGE_PACKAGE OFF CACHE BOOL "Add Python support to the Sourcetrail indexer.")
 set(DOCKER_BUILD OFF CACHE BOOL "Build runs in Docker")
 set(TREAT_WARNINGS_AS_ERRORS ON CACHE BOOL "Treat compiler warnings as errors")
+set(VCPKG_MANIFEST_MODE OFF CACHE BOOL "Never auto-install from vcpkg.json")
 
 #set (CMAKE_VERBOSE_MAKEFILE ON)
 
