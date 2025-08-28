@@ -14,7 +14,7 @@
 #include <iostream>
 #include <fstream>
 
-#pragma optimize("", off)
+//#pragma optimize("", off)
 
 SearchIndex::SearchIndex()
 {
