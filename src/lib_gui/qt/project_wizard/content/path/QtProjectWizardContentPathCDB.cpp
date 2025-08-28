@@ -109,17 +109,17 @@ void QtProjectWizardContentPathCDB::pickedPath()
 
 	const FilePath projectPath = m_settings->getProjectDirectoryPath();
 
-	std::set<FilePath> indexedHeaderPaths;
-	for (const FilePath& path:
-		 QtProjectWizardContentPathsIndexedHeaders::getIndexedPathsDerivedFromCDB(m_settings))
-	{
-		if (projectPath.contains(path))
-		{
-			// the relative path is always shorter than the absolute path
-			indexedHeaderPaths.insert(path.getRelativeTo(projectPath));
-		}
-	}
-	m_settings->setIndexedHeaderPaths(utility::toVector(indexedHeaderPaths));
+	//std::set<FilePath> indexedHeaderPaths;
+	//for (const FilePath& path:
+	//	 QtProjectWizardContentPathsIndexedHeaders::getIndexedPathsDerivedFromCDB(m_settings))
+	//{
+	//	if (projectPath.contains(path))
+	//	{
+	//		// the relative path is always shorter than the absolute path
+	//		indexedHeaderPaths.insert(path.getRelativeTo(projectPath));
+	//	}
+	//}
+	//m_settings->setIndexedHeaderPaths(utility::toVector(indexedHeaderPaths));
 
 	m_window->loadContent();
 }

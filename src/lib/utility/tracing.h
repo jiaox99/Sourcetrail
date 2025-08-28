@@ -2,8 +2,8 @@
 #define TRACING_H
 
 
-// #define TRACING_ENABLED
-// #define USE_ACCUMULATED_TRACING
+#define TRACING_ENABLED
+#define USE_ACCUMULATED_TRACING
 
 
 #include <mutex>

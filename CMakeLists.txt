@@ -9,6 +9,7 @@ set(BUILD_PYTHON_LANGUAGE_PACKAGE OFF CACHE BOOL "Add Python support to the Sour
 set(DOCKER_BUILD OFF CACHE BOOL "Build runs in Docker")
 set(TREAT_WARNINGS_AS_ERRORS ON CACHE BOOL "Treat compiler warnings as errors")
 set(BUILD_REST_API_PACKAGE OFF CACHE BOOL "Add REST API support")
+set(VCPKG_MANIFEST_MODE OFF CACHE BOOL "Never auto-install from vcpkg.json")
 
 #set (CMAKE_VERBOSE_MAKEFILE ON)
 

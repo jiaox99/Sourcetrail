@@ -30,7 +30,7 @@
 #include "utilityApp.h"
 #include "boost/filesystem.hpp"
 
-#pragma optimize("", off)
+//#pragma optimize("", off)
 
 PersistentStorage::PersistentStorage(const FilePath& dbPath, const FilePath& bookmarkPath)
 	: m_sqliteIndexStorage(dbPath), m_sqliteBookmarkStorage(bookmarkPath)

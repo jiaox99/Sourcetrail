@@ -175,6 +175,13 @@ void HierarchyCache::HierarchyNode::setIsImplicit(bool isImplicit)
 	m_isImplicit = isImplicit;
 }
 
+void HierarchyCache::HierarchyNode::clean()
+{
+	m_bases.clean();
+	m_baseEdgeIds.clean();
+	m_children.clean();
+}
+
 HierarchyCache::HierarchyNode::~HierarchyNode()
 {
 	//std::cout << "HierarchyNode::~HierarchyNode()" << std::endl;
@@ -223,7 +230,7 @@ void HierarchyCache::resolveData(flashmapper::DataBlock& block)
 
 void HierarchyCache::load(std::string filePath, flashmapper::Mapper& mapper)
 {
-	m_nodes.clear();
+	m_nodes.clean();
 
 	mapper.readFromFile(filePath.c_str());
 	HierarchyCache* hierarchy = mapper.readData<HierarchyCache>();
@@ -242,7 +249,7 @@ void HierarchyCache::save(std::string filePath, flashmapper::Mapper& mapper)
 
 void HierarchyCache::clear()
 {
-	m_nodes.clear();
+	m_nodes.clean();
 }
 
 void HierarchyCache::createConnection(

@@ -14,7 +14,7 @@
 #include <iostream>
 #include <fstream>
 
-#pragma optimize("", off)
+//#pragma optimize("", off)
 
 SearchIndex::SearchIndex()
 {
@@ -97,8 +97,8 @@ void SearchIndex::finishSetup()
 
 void SearchIndex::clear()
 {
-	m_nodes.clear();
-	m_edges.clear();
+	m_nodes.clean();
+	m_edges.clean();
 
 	m_nodes.push_back(SearchNode());
 }
@@ -618,6 +618,12 @@ void SearchIndex::SearchNode::resolveData(flashmapper::DataBlock& block)
 	edges.resolveData(block);
 }
 
+void SearchIndex::SearchNode::clean()
+{
+	elementIds.clean();
+	edges.clean();
+}
+
 flashmapper::Address SearchIndex::SearchEdge::writeData(flashmapper::Mapper& mapper, flashmapper::DataBlock& block)
 {
 	mapper.writeData(s, block);
@@ -633,10 +639,16 @@ void SearchIndex::SearchEdge::resolveData(flashmapper::DataBlock& block)
 	gate.resolveData(block);
 }
 
+void SearchIndex::SearchEdge::clean()
+{
+	s.clean();
+	gate.clean();
+}
+
 void SearchIndex::load(std::string filePath, flashmapper::Mapper& mapper)
 {
-	m_nodes.clear();
-	m_edges.clear();
+	m_nodes.clean();
+	m_edges.clean();
 
 	mapper.readFromFile(filePath.c_str());
 	SearchIndex* index = mapper.readData<SearchIndex>();

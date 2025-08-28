@@ -135,6 +135,8 @@ private:
 		bool isImplicit() const;
 		void setIsImplicit(bool isImplicit);
 
+		void clean();
+
 	private:
 
 		Id m_nodeId;
