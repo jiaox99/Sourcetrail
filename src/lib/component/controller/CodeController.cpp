@@ -703,7 +703,7 @@ void CodeController::clear()
 std::vector<CodeFileParams> CodeController::getFilesForActiveSourceLocations(
 	const SourceLocationCollection* collection, Id declarationId) const
 {
-	TRACE();
+	TRACE("CodeController getFilesForActiveSourceLocation");
 
 	std::vector<CodeFileParams> files;
 	collection->forEachSourceLocationFile([&](std::shared_ptr<SourceLocationFile> file) -> void {

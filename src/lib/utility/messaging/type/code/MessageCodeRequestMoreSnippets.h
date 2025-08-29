@@ -1,9 +1,10 @@
 #ifndef MESSAGE_CODE_REQUEST_MORE_SNIPPETS_H
 #define MESSAGE_CODE_REQUEST_MORE_SNIPPETS_H
 
+#pragma once
 
 #include "Message.h"
-#include "TabId.h"#pragma once
+#include "TabId.h"
 
 class MessageCodeRequestMoreSnippets: public Message<MessageCodeRequestMoreSnippets>
 {
