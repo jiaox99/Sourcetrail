@@ -16,7 +16,7 @@ void SqliteFullTextSearchIndex::addFile(const Id id, const std::string& data)
 
 std::vector<FullTextSearchResult> SqliteFullTextSearchIndex::searchForTerm(const std::wstring& term) const
 {
-	TRACE();
+	TRACE("FTS");
 
 	std::vector<FullTextSearchResult> ret;
 	{

@@ -383,7 +383,7 @@ void PersistentStorage::updateOverview()
 
 std::set<FilePath> PersistentStorage::getReferenced(const std::set<FilePath>& filePaths) const
 {
-	TRACE();
+	TRACE("PersistentStorage getReferenced");
 	std::set<FilePath> referenced;
 
 	utility::append(referenced, getReferencedByIncludes(filePaths));
@@ -394,7 +394,7 @@ std::set<FilePath> PersistentStorage::getReferenced(const std::set<FilePath>& fi
 
 std::set<FilePath> PersistentStorage::getReferencing(const std::set<FilePath>& filePaths) const
 {
-	TRACE();
+	TRACE("PersistentStorage getReferencing");
 	std::set<FilePath> referencing;
 
 	utility::append(referencing, getReferencingByIncludes(filePaths));
@@ -405,7 +405,7 @@ std::set<FilePath> PersistentStorage::getReferencing(const std::set<FilePath>& f
 
 void PersistentStorage::clearAllErrors()
 {
-	TRACE();
+	TRACE("PersistentStorage clearAllErrors");
 
 	m_sqliteIndexStorage.removeAllErrors();
 }
@@ -413,7 +413,7 @@ void PersistentStorage::clearAllErrors()
 void PersistentStorage::clearFileElements(
 	const std::vector<FilePath>& filePaths, std::function<void(int)> updateStatusCallback)
 {
-	TRACE();
+	TRACE("PersistentStorage clearFileElements");
 
 	std::vector<Id> fileNodeIds;
 	for (const StorageFile& file: m_sqliteIndexStorage.getFilesByPaths(filePaths))
@@ -433,7 +433,7 @@ void PersistentStorage::clearFileElements(
 
 std::vector<FileInfo> PersistentStorage::getFileInfoForAllFiles() const
 {
-	TRACE();
+	TRACE("PersistentStorage getFileInfoForAllFiles");
 
 	std::vector<FileInfo> fileInfos;
 
@@ -452,7 +452,7 @@ std::vector<FileInfo> PersistentStorage::getFileInfoForAllFiles() const
 
 std::set<FilePath> PersistentStorage::getIncompleteFiles() const
 {
-	TRACE();
+	TRACE("PersistentStorage getIncompleteFiles");
 
 	std::set<FilePath> incompleteFiles;
 	for (auto p: m_filePathMapCache.m_fileNodeComplete)
@@ -479,7 +479,7 @@ bool PersistentStorage::getFilePathIndexed(const FilePath& path) const
 
 void PersistentStorage::buildCaches()
 {
-	TRACE();
+	TRACE("PersistentStorage buildCaches");
 
 	clearCaches();
 
@@ -493,7 +493,7 @@ void PersistentStorage::buildCaches()
 
 void PersistentStorage::optimizeMemory()
 {
-	TRACE();
+	TRACE("PersistentStorage optimizeMemory");
 
 	m_sqliteIndexStorage.setTime();
 	m_sqliteIndexStorage.optimizeMemory();
@@ -528,7 +528,7 @@ std::vector<Id> PersistentStorage::getNodeIdsForNameHierarchies(
 
 NameHierarchy PersistentStorage::getNameHierarchyForNodeId(Id nodeId) const
 {
-	TRACE();
+	TRACE("PersistentStorage getNameHierarchyForNodeId");
 
 	return NameHierarchy::deserialize(
 		m_sqliteIndexStorage.getFirstById<StorageNode>(nodeId).serializedName);
@@ -537,7 +537,7 @@ NameHierarchy PersistentStorage::getNameHierarchyForNodeId(Id nodeId) const
 std::vector<NameHierarchy> PersistentStorage::getNameHierarchiesForNodeIds(
 	const std::vector<Id>& nodeIds) const
 {
-	TRACE();
+	TRACE("PersistentStorage getNameHierarchiesForNodeIds");
 
 	std::vector<NameHierarchy> nameHierarchies;
 	for (const StorageNode& storageNode: m_sqliteIndexStorage.getAllByIds<StorageNode>(nodeIds))
@@ -606,7 +606,7 @@ StorageEdge PersistentStorage::getEdgeById(Id edgeId) const
 std::shared_ptr<SourceLocationCollection> PersistentStorage::getFullTextSearchLocations(
 	const std::wstring& searchTerm, bool caseSensitive) const
 {
-	TRACE();
+	TRACE("PersistentStorage getFullTextSearchLocations");
 
 	std::shared_ptr<SourceLocationCollection> collection =
 		std::make_shared<SourceLocationCollection>();
@@ -656,7 +656,7 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getFullTextSearchLo
 						int lineNumber = 1;
 						std::wstring line = codec.decode(fileContent->getLine(lineNumber));
 
-						const int posCount = fileResult.positions.size();
+						const int posCount = (int)fileResult.positions.size();
 						for (int i=0; i<posCount; i++)
 						{
 							int pos = fileResult.positions[i];
@@ -730,7 +730,7 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getFullTextSearchLo
 std::vector<SearchMatch> PersistentStorage::getAutocompletionMatches(
 	const std::wstring& query, NodeTypeSet acceptedNodeTypes, bool acceptCommands) const
 {
-	TRACE();
+	TRACE("PersistentStorage getAutocompletionMatches");
 
 	// search in indices
 	const size_t maxResultsCount = static_cast<size_t>(std::pow(3, query.size() + 3));
@@ -1003,7 +1003,7 @@ std::vector<SearchMatch> PersistentStorage::getAutocompletionCommandMatches(
 std::vector<SearchMatch> PersistentStorage::getSearchMatchesForTokenIds(
 	const std::vector<Id>& elementIds) const
 {
-	TRACE();
+	TRACE("PersistentStorage getSearchMatchesForTokenIds");
 
 	// todo: what if all these elements share the same node in the searchindex?
 	// In that case there should be only one search match.
@@ -1050,7 +1050,7 @@ std::vector<SearchMatch> PersistentStorage::getSearchMatchesForTokenIds(
 
 std::shared_ptr<Graph> PersistentStorage::getGraphForAll() const
 {
-	TRACE();
+	TRACE("PersistentStorage getGraphForAll");
 
 	std::shared_ptr<Graph> graph = std::make_shared<Graph>();
 	const int nodeCount = m_sqliteIndexStorage.getNodeCount(true);
@@ -1095,7 +1095,7 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForAll() const
 
 std::shared_ptr<Graph> PersistentStorage::getGraphForNodeTypes(NodeTypeSet nodeTypes) const
 {
-	TRACE();
+	TRACE("PersistentStorage getGraphForNodeTypes");
 
 	std::shared_ptr<Graph> graph = std::make_shared<Graph>();
 	const int nodeCount = m_sqliteIndexStorage.getNodeCount(true);
@@ -1133,7 +1133,7 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForNodeTypes(NodeTypeSet nodeT
 std::shared_ptr<Graph> PersistentStorage::getGraphForActiveTokenIds(
 	const std::vector<Id>& tokenIds, const std::vector<Id>& expandedNodeIds, bool* isActiveNamespace) const
 {
-	TRACE();
+	TRACE("PersistentStorage getGraphForActiveTokenIds");
 
 	std::vector<Id> ids(tokenIds);
 	bool isPackage = false;
@@ -1309,7 +1309,7 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForActiveTokenIds(
 
 std::shared_ptr<Graph> PersistentStorage::getGraphForChildrenOfNodeId(Id nodeId) const
 {
-	TRACE();
+	TRACE("PersistentStorage getGraphForChildrenOfNodeId");
 
 	std::vector<Id> nodeIds;
 	std::vector<Id> edgeIds;
@@ -1339,7 +1339,7 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForTrail(
 	size_t depth,
 	bool directed) const
 {
-	TRACE();
+	TRACE("PersistentStorage getGraphForTrail");
 
 	std::set<Id> nodeIds;
 	std::set<Id> edgeIds;
@@ -1553,7 +1553,7 @@ std::shared_ptr<Graph> PersistentStorage::getGraphForTrail(
 
 NodeKindMask PersistentStorage::getAvailableNodeTypes() const
 {
-	TRACE();
+	TRACE("PersistentStorage getAvailableNodeTypes");
 
 	NodeKindMask mask = 0;
 	for (int type: m_sqliteIndexStorage.getAvailableNodeTypes(true))
@@ -1565,7 +1565,7 @@ NodeKindMask PersistentStorage::getAvailableNodeTypes() const
 
 Edge::TypeMask PersistentStorage::getAvailableEdgeTypes() const
 {
-	TRACE();
+	TRACE("PersistentStorage getAvailableEdgeTypes");
 
 	Edge::TypeMask mask = 0;
 	for (int type: m_sqliteIndexStorage.getAvailableEdgeTypes(true))
@@ -1578,7 +1578,7 @@ Edge::TypeMask PersistentStorage::getAvailableEdgeTypes() const
 // TODO: rename: getActiveElementIdsForId; TODO: make separate function for declarationId
 std::vector<Id> PersistentStorage::getActiveTokenIdsForId(Id tokenId, Id* declarationId) const
 {
-	TRACE();
+	TRACE("PersistentStorage getActiveTokenIdsForId");
 
 	std::vector<Id> activeTokenIds;
 
@@ -1607,7 +1607,7 @@ std::vector<Id> PersistentStorage::getActiveTokenIdsForId(Id tokenId, Id* declar
 
 std::vector<Id> PersistentStorage::getNodeIdsForLocationIds(const std::vector<Id>& locationIds) const
 {
-	TRACE();
+	TRACE("PersistentStorage getNodeIdsForLocationIds");
 
 	std::set<Id> nodeIds;
 	std::set<Id> implicitNodeIds;
@@ -1646,7 +1646,7 @@ std::vector<Id> PersistentStorage::getNodeIdsForLocationIds(const std::vector<Id
 std::shared_ptr<SourceLocationCollection> PersistentStorage::getSourceLocationsForTokenIds(
 	const std::vector<Id>& tokenIds) const
 {
-	TRACE();
+	TRACE("PersistentStorage getSourceLocationsForTokenIds");
 
 	std::map<Id, FilePath> filePaths;
 	std::vector<Id> nonFileIds;
@@ -1756,7 +1756,7 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getSourceLocationsF
 std::shared_ptr<SourceLocationCollection> PersistentStorage::getSourceLocationsForLocationIds(
 	const std::vector<Id>& locationIds) const
 {
-	TRACE();
+	TRACE("PersistentStorage getSourceLocationsForLocationIds");
 
 	std::shared_ptr<SourceLocationCollection> collection =
 		std::make_shared<SourceLocationCollection>();
@@ -1797,7 +1797,7 @@ std::shared_ptr<SourceLocationCollection> PersistentStorage::getSourceLocationsF
 std::shared_ptr<SourceLocationFile> PersistentStorage::getSourceLocationsForFile(
 	const FilePath& filePath) const
 {
-	TRACE();
+	TRACE("PersistentStorage getSourceLocationsForFile");
 
 	return m_sqliteIndexStorage.getSourceLocationsForFile(filePath)->getFilteredByTypes(
 		{LOCATION_TOKEN, LOCATION_SCOPE, LOCATION_QUALIFIER, LOCATION_LOCAL_SYMBOL, LOCATION_UNSOLVED});
@@ -1806,7 +1806,7 @@ std::shared_ptr<SourceLocationFile> PersistentStorage::getSourceLocationsForFile
 std::shared_ptr<SourceLocationFile> PersistentStorage::getSourceLocationsForLinesInFile(
 	const FilePath& filePath, size_t startLine, size_t endLine) const
 {
-	TRACE();
+	TRACE("PersistentStorage getSourceLocationsForLinesInFile");
 
 	return m_sqliteIndexStorage.getSourceLocationsForLinesInFile(filePath, startLine, endLine)
 		->getFilteredByLines(startLine, endLine)
@@ -1821,7 +1821,7 @@ std::shared_ptr<SourceLocationFile> PersistentStorage::getSourceLocationsForLine
 std::shared_ptr<SourceLocationFile> PersistentStorage::getSourceLocationsOfTypeInFile(
 	const FilePath& filePath, LocationType type) const
 {
-	TRACE();
+	TRACE("PersistentStorage getSourceLocationsOfTypeInFile");
 
 	return m_sqliteIndexStorage.getSourceLocationsOfTypeInFile(filePath, type);
 }
@@ -1829,7 +1829,7 @@ std::shared_ptr<SourceLocationFile> PersistentStorage::getSourceLocationsOfTypeI
 std::shared_ptr<TextAccess> PersistentStorage::getFileContent(
 	const FilePath& filePath, bool showsErrors) const
 {
-	TRACE();
+	TRACE("PersistentStorage getFileContent");
 
 	std::shared_ptr<TextAccess> fileContent = m_sqliteIndexStorage.getFileContentByPath(
 		filePath.wstr());
@@ -1877,7 +1877,7 @@ std::vector<FileInfo> PersistentStorage::getFileInfosForFilePaths(
 
 StorageStats PersistentStorage::getStorageStats() const
 {
-	TRACE();
+	TRACE("PersistentStorage getStorageStats");
 
 	StorageStats stats;
 
@@ -1980,7 +1980,7 @@ std::vector<ErrorInfo> PersistentStorage::getErrorsForFileLimited(
 std::shared_ptr<SourceLocationCollection> PersistentStorage::getErrorSourceLocations(
 	const std::vector<ErrorInfo>& errors) const
 {
-	TRACE();
+	TRACE("PersistentStorage getErrorSourceLocations");
 
 	std::shared_ptr<SourceLocationCollection> collection =
 		std::make_shared<SourceLocationCollection>();
@@ -2203,7 +2203,7 @@ std::vector<BookmarkCategory> PersistentStorage::getAllBookmarkCategories() cons
 TooltipInfo PersistentStorage::getTooltipInfoForTokenIds(
 	const std::vector<Id>& tokenIds, TooltipOrigin origin) const
 {
-	TRACE();
+	TRACE("PersistentStorage getTooltipInfoForTokenIds");
 
 	TooltipInfo info;
 
@@ -2294,7 +2294,7 @@ TooltipInfo PersistentStorage::getTooltipInfoForTokenIds(
 
 TooltipSnippet PersistentStorage::getTooltipSnippetForNode(const StorageNode& node) const
 {
-	TRACE();
+	TRACE("PersistentStorage getTooltipSnippetForNode");
 
 	const NameHierarchy nameHierarchy = NameHierarchy::deserialize(node.serializedName);
 	TooltipSnippet snippet;
@@ -2549,7 +2549,7 @@ TooltipSnippet PersistentStorage::getTooltipSnippetForNode(const StorageNode& no
 TooltipInfo PersistentStorage::getTooltipInfoForSourceLocationIdsAndLocalSymbolIds(
 	const std::vector<Id>& locationIds, const std::vector<Id>& localSymbolIds) const
 {
-	TRACE();
+	TRACE("PersistentStorage getTooltipInfoForSourceLocationIdsAndLocalSymbolIds");
 
 	const TextCodec codec(ApplicationSettings::getInstance()->getTextEncoding());
 
@@ -2880,7 +2880,7 @@ std::set<FilePath> PersistentStorage::getReferencingByImports(const std::set<Fil
 void PersistentStorage::addNodesToGraph(
 	const std::vector<Id>& newNodeIds, Graph* graph, bool addChildCount) const
 {
-	TRACE();
+	TRACE("PersistentStorage addNodesToGraph");
 
 	std::vector<Id> nodeIds;
 	if (graph->getNodeCount())
@@ -2954,7 +2954,7 @@ void PersistentStorage::addNodeToGraph(
 
 void PersistentStorage::addEdgesToGraph(const std::vector<Id>& newEdgeIds, Graph* graph) const
 {
-	TRACE();
+	TRACE("PersistentStorage addEdgesToGraph");
 
 	std::vector<Id> edgeIds;
 	for (Id id: newEdgeIds)
@@ -3000,7 +3000,7 @@ void PersistentStorage::addEdgesToGraph(const std::vector<Id>& newEdgeIds, Graph
 void PersistentStorage::addNodesWithParentsAndEdgesToGraph(
 	const std::vector<Id>& nodeIds, const std::vector<Id>& edgeIds, Graph* graph, bool addChildCount) const
 {
-	TRACE();
+	TRACE("PersistentStorage addNodesWithParentsAndEdgesToGraph");
 
 	std::set<Id> allNodeIds(nodeIds.begin(), nodeIds.end());
 	std::set<Id> allEdgeIds(edgeIds.begin(), edgeIds.end());
@@ -3029,7 +3029,7 @@ void PersistentStorage::addNodesWithParentsAndEdgesToGraph(
 void PersistentStorage::addBundledEdgesToGraph(
 	Id nodeId, const std::vector<StorageEdge>& edgesToBundle, Graph* graph) const
 {
-	TRACE();
+	TRACE("PersistentStorage addBundledEdgesToGraph");
 
 	struct EdgeInfo
 	{
@@ -3183,7 +3183,7 @@ void PersistentStorage::addFileContentsToGraph(Id fileId, Graph* graph) const
 
 void PersistentStorage::addComponentAccessToGraph(Graph* graph) const
 {
-	TRACE();
+	TRACE("PersistentStorage addComponentAccessToGraph");
 
 	std::vector<Id> nodeIds;
 	graph->forEachNode([&nodeIds](Node* node) { nodeIds.push_back(node->getId()); });
@@ -3202,7 +3202,7 @@ void PersistentStorage::addComponentAccessToGraph(Graph* graph) const
 
 void PersistentStorage::addComponentIsAmbiguousToGraph(Graph* graph) const
 {
-	TRACE();
+	TRACE("PersistentStorage addComponentIsAmbiguousToGraph");
 
 	std::vector<Id> edgeIds;
 	graph->forEachEdge([&edgeIds](Edge* edge) { edgeIds.push_back(edge->getId()); });
@@ -3222,7 +3222,7 @@ void PersistentStorage::addComponentIsAmbiguousToGraph(Graph* graph) const
 void PersistentStorage::addCompleteFlagsToSourceLocationCollection(
 	SourceLocationCollection* collection) const
 {
-	TRACE();
+	TRACE("PersistentStorage addCompleteFlagsToSourceLocationCollection");
 
 	collection->forEachSourceLocationFile([this](std::shared_ptr<SourceLocationFile> file) {
 		Id fileId = getFileNodeId(file->getFilePath());
@@ -3234,7 +3234,7 @@ void PersistentStorage::addCompleteFlagsToSourceLocationCollection(
 
 void PersistentStorage::addInheritanceChainsToGraph(const std::vector<Id>& activeNodeIds, Graph* graph) const
 {
-	TRACE();
+	TRACE("PersistentStorage addInheritanceChainsToGraph");
 
 	std::set<Id> activeNodeIdsSet;
 	for (Id activeNodeId: activeNodeIds)
@@ -3302,7 +3302,7 @@ void PersistentStorage::addInheritanceChainsToGraph(const std::vector<Id>& activ
 
 void PersistentStorage::buildFilePathMaps()
 {
-	TRACE();
+	TRACE("PersistentStorage buildFilePathMaps");
 
 	const FilePath dbPath = getIndexDbFilePath();
 	const FilePath filePathCachePath = dbPath.getParentDirectory().getConcatenated(FilePath("filepathcache.idx"));
@@ -3343,7 +3343,7 @@ void PersistentStorage::buildFilePathMaps()
 
 void PersistentStorage::buildSearchIndex()
 {
-	TRACE();
+	TRACE("PersistentStorage buildSearchIndex");
 
 	const FilePath dbPath = getIndexDbFilePath();
 	const FilePath symbolIndexPath = dbPath.getParentDirectory().getConcatenated(FilePath("symbols.idx"));
@@ -3418,7 +3418,7 @@ void PersistentStorage::buildSearchIndex()
 
 void PersistentStorage::buildFullTextSearchIndex() const
 {
-	TRACE();
+	TRACE("PersistentStorage buildFullTextSearchIndex");
 
 	TextCodec codec(ApplicationSettings::getInstance()->getTextEncoding());
 
@@ -3464,7 +3464,7 @@ void PersistentStorage::buildFullTextSearchIndex() const
 
 void PersistentStorage::buildMemberEdgeIdOrderMap()
 {
-	TRACE();
+	TRACE("PersistentStorage buildMemberEdgeIdOrderMap");
 
 	if (!m_filePathMapCache.m_hasJavaFiles)
 	{
@@ -3537,7 +3537,7 @@ void PersistentStorage::buildMemberEdgeIdOrderMap()
 
 void PersistentStorage::buildHierarchyCache()
 {
-	TRACE();
+	TRACE("PersistentStorage buildHierarchyCache");
 
 	const FilePath dbPath = getIndexDbFilePath();
 	const FilePath hierarchyCachePath = dbPath.getParentDirectory().getConcatenated(
