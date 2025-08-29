@@ -741,7 +741,7 @@ std::vector<CodeFileParams> CodeController::getFilesForActiveSourceLocations(
 std::vector<CodeFileParams> CodeController::getFilesForCollection(
 	std::shared_ptr<SourceLocationCollection> collection) const
 {
-	TRACE();
+	TRACE("CodeController getFilesForCollection");
 
 	std::vector<CodeFileParams> files;
 
@@ -794,7 +794,7 @@ CodeSnippetParams CodeController::getSnippetParamsForWholeFile(
 std::vector<CodeSnippetParams> CodeController::getSnippetsForFile(
 	std::shared_ptr<SourceLocationFile> activeSourceLocations) const
 {
-	TRACE();
+	TRACE("CodeController getSnippetsForFile");
 
 	bool showsErrors = false;
 	if (activeSourceLocations->getSourceLocations().size())
@@ -1295,7 +1295,7 @@ std::pair<int, int> CodeController::findClosestReferenceIndex(
 
 void CodeController::expandVisibleFiles(bool useSingleFileCache)
 {
-	TRACE();
+	TRACE("CodeController expandVisibleFiles");
 
 	if (!m_files.size())
 	{
@@ -1411,7 +1411,7 @@ void CodeController::setFileState(
 void CodeController::setFileState(
 	CodeFileParams& file, MessageChangeFileView::FileState state, bool useSingleFileCache)
 {
-	TRACE();
+	TRACE("CodeController setFileState");
 
 	switch (state)
 	{
@@ -1452,7 +1452,7 @@ void CodeController::setFileState(
 
 bool CodeController::addAllSourceLocations()
 {
-	TRACE();
+	TRACE("CodeController addAllSourceLocations");
 
 	bool addedNewLocations = false;
 
@@ -1516,7 +1516,7 @@ bool CodeController::addAllSourceLocations()
 
 void CodeController::addModificationTimes()
 {
-	TRACE();
+	TRACE("CodeController addModificationTimes");
 
 	std::vector<FilePath> filePaths;
 	for (const CodeFileParams& file: m_files)
