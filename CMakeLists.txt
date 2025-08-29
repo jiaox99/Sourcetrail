@@ -8,7 +8,7 @@ set(BUILD_JAVA_LANGUAGE_PACKAGE OFF CACHE BOOL "Add Java support to the Sourcetr
 set(BUILD_PYTHON_LANGUAGE_PACKAGE OFF CACHE BOOL "Add Python support to the Sourcetrail indexer.")
 set(DOCKER_BUILD OFF CACHE BOOL "Build runs in Docker")
 set(TREAT_WARNINGS_AS_ERRORS ON CACHE BOOL "Treat compiler warnings as errors")
-set(BUILD_REST_API_PACKAGE OFF CACHE BOOL "Add REST API support")
+set(BUILD_REST_API_PACKAGE ON CACHE BOOL "Add REST API support")
 set(VCPKG_MANIFEST_MODE OFF CACHE BOOL "Never auto-install from vcpkg.json")
 
 #set (CMAKE_VERBOSE_MAKEFILE ON)
@@ -380,10 +380,15 @@ if (BUILD_REST_API_PACKAGE)
 
 	target_include_directories(${LIB_REST_PROJECT_NAME} SYSTEM
 		PUBLIC ${DROGON_INCLUDE_DIRS}
+
+		${LIB_REST_INCLUDE_PATHS}
 		${Boost_INCLUDE_DIRS}
+		"${LIB_INCLUDE_PATHS}"
 		"${EXTERNAL_INCLUDE_PATHS}"
 		"${EXTERNAL_C_INCLUDE_PATHS}"
 	)
+
+	target_link_libraries(${LIB_REST_PROJECT_NAME} ${LIB_PROJECT_NAME} Drogon::Drogon)
 endif()
 
 # Lib Cxx ----------------------------------------------------------------------
@@ -754,6 +759,17 @@ target_link_libraries(
 	${LIB_PROJECT_NAME}
 )
 
+if (BUILD_REST_API_PACKAGE)
+	if (WIN32)
+		target_link_options(${APP_PROJECT_NAME} PRIVATE "/WHOLEARCHIVE:${LIB_REST_PROJECT_NAME}")
+	else ()
+		target_link_options(${APP_PROJECT_NAME} PRIVATE
+			"-Wl,--whole-archive"
+			${LIB_REST_PROJECT_NAME}
+			"-Wl,--no-whole-archive")
+	endif ()
+endif()
+
 if (WIN32)
     target_link_libraries(${APP_PROJECT_NAME} "bcrypt")
 endif ()
@@ -771,6 +787,7 @@ set_property(
 		$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:${LIB_CXX_INCLUDE_PATHS}>
 		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_INCLUDE_PATHS}>
 		$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_INCLUDE_PATHS}>
+		$<$<BOOL:${BUILD_REST_LANGUAGE_PACKAGE}>:${LIB_REST_INCLUDE_PATHS}>
 )
 
 target_include_directories(${APP_PROJECT_NAME} SYSTEM
@@ -860,11 +877,6 @@ target_link_libraries(
 	${TEST_PROJECT_NAME}
 	${LIB_GUI_PROJECT_NAME}
 	"bcrypt"
-	$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:${LIB_CXX_PROJECT_NAME}>
-	$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_PROJECT_NAME}>
-	$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_PROJECT_NAME}>
-	${LIB_PROJECT_NAME}
-	${LIB_GUI_PROJECT_NAME}
 	$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:${LIB_CXX_PROJECT_NAME}>
 	$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_PROJECT_NAME}>
 	$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_PROJECT_NAME}>
