@@ -25,6 +25,7 @@
 #include "tracing.h"
 #include "utility.h"
 #include "utilityString.h"
+#include "boost/nowide/convert.hpp"
 
 GraphController::GraphController(StorageAccess* storageAccess)
 	: m_storageAccess(storageAccess), m_useBezierEdges(false)
@@ -814,7 +815,7 @@ void dumpAllNodes(const std::vector<std::shared_ptr<DummyNode>>& nodes, const st
 {
 	for (auto const& node : nodes)
 	{
-		std::string name(node->name.begin(), node->name.end());
+		std::string name = boost::nowide::narrow(node->name);
 		LOG_INFO_STREAM(<< prefix << "ID:" << node->tokenId << " Name:" << name);
 		dumpAllNodes(node->subNodes, prefix + "\t");
 	}
