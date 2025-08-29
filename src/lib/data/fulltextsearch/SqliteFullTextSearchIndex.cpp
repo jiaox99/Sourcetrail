@@ -2,6 +2,7 @@
 
 #include "logging.h"
 #include "tracing.h"
+#include "boost/nowide/convert.hpp"
 
 void SqliteFullTextSearchIndex::setStorage(SqliteIndexStorage* p)
 {
@@ -15,11 +16,11 @@ void SqliteFullTextSearchIndex::addFile(const Id id, const std::string& data)
 
 std::vector<FullTextSearchResult> SqliteFullTextSearchIndex::searchForTerm(const std::wstring& term) const
 {
-	TRACE();
+	TRACE("FTS");
 
 	std::vector<FullTextSearchResult> ret;
 	{
-		const std::string _term(term.begin(), term.end());
+		const std::string _term = boost::nowide::narrow(term);
 		std::vector<std::vector<long>> offsets = m_sqliteIndexStorage->queryFTSFileContentOffsets(
 			_term);
 		for (int i = 0; i < offsets.size(); i++)

@@ -56,13 +56,13 @@ void SearchIndex::addNode(Id id, std::wstring name, NodeType type)
 				SearchNode* n = m_nodes.back();
 
 				m_edges.push_back(SearchEdge(
-					currentEdge->target, edgeString.substr(matchCount).data()));
+					currentEdge->target, edgeString.substr((flashmapper::wstring::SIZE_T)matchCount).data()));
 				SearchEdge* e = m_edges.back();
 
 				n->edges.emplace(e->s[0], m_edges.size()-1);
 
 				currentEdge = &m_edges[currentEdgeI];
-				currentEdge->s = m_edges[currentEdgeI].s.substr(0, matchCount);
+				currentEdge->s = m_edges[currentEdgeI].s.substr(0, (flashmapper::wstring::SIZE_T)matchCount);
 				currentEdge->target = (long)m_nodes.size() - 1;
 			}
 
