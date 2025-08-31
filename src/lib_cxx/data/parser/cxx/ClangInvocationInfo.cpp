@@ -8,7 +8,7 @@
 #include <clang/Basic/Version.h>
 #include <llvm/Option/ArgList.h>
 #include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/Host.h>
+#include <llvm/TargetParser/Host.h>
 
 #include "CxxCompilationDatabaseSingle.h"
 #include "CxxDiagnosticConsumer.h"
@@ -53,7 +53,7 @@ ClangInvocationInfo ClangInvocationInfo::getClangInvocationString(
 		const char* const BinaryName = Argv[0];
 		clang::IntrusiveRefCntPtr<clang::DiagnosticOptions> DiagOpts = new clang::DiagnosticOptions();
 		unsigned MissingArgIndex, MissingArgCount;
-		llvm::opt::OptTable Opts = clang::driver::getDriverOptTable();
+		const llvm::opt::OptTable& Opts = clang::driver::getDriverOptTable();
 		llvm::opt::InputArgList ParsedArgs = Opts.ParseArgs(
 			clang::ArrayRef<const char*>(Argv).slice(1), MissingArgIndex, MissingArgCount);
 		clang::ParseDiagnosticArgs(*DiagOpts, ParsedArgs);

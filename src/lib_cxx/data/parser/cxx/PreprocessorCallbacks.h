@@ -8,7 +8,7 @@
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Lex/PPCallbacks.h>
 #include <clang/Lex/Token.h>
-#include <llvm/ADT/Optional.h>
+#include <optional>
 
 #include "FilePath.h"
 #include "types.h"
@@ -38,7 +38,7 @@ public:
 		llvm::StringRef fileName,
 		bool isAngled,
 		clang::CharSourceRange fileNameRange,
-		llvm::Optional<clang::FileEntryRef> fileEntry,
+		clang::OptionalFileEntryRef fileEntry,
 		llvm::StringRef searchPath,
 		llvm::StringRef relativePath,
 		const clang::Module* imported,
