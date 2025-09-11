@@ -334,6 +334,26 @@ if (WIN32)
 endif()
 
 
+# Lib Rest API ------------------------------------------------------------------
+
+if (BUILD_REST_API_PACKAGE)
+	add_library(${LIB_REST_PROJECT_NAME} ${LIB_REST_FILES})
+
+	create_source_groups(${LIB_REST_FILES})
+
+	target_include_directories(${LIB_REST_PROJECT_NAME} SYSTEM
+		PUBLIC ${DROGON_INCLUDE_DIRS}
+
+		${LIB_REST_INCLUDE_PATHS}
+		${Boost_INCLUDE_DIRS}
+		"${LIB_INCLUDE_PATHS}"
+		"${EXTERNAL_INCLUDE_PATHS}"
+		"${EXTERNAL_C_INCLUDE_PATHS}"
+	)
+
+	target_link_libraries(${LIB_REST_PROJECT_NAME} Drogon::Drogon)
+endif()
+
 # Lib --------------------------------------------------------------------------
 
 set_source_files_properties(${EXTERNAL_FILES} PROPERTIES COMPILE_FLAGS "-w")
@@ -364,34 +384,13 @@ target_include_directories(${LIB_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
 
-target_link_libraries(${LIB_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${Boost_LIBRARIES})
+target_link_libraries(${LIB_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${LIB_REST_PROJECT_NAME} ${Boost_LIBRARIES})
 
 #configure language package defines
 configure_file(
 	"${CMAKE_SOURCE_DIR}/cmake/language_packages.h.in"
 	"${CMAKE_BINARY_DIR}/src/lib/language_packages.h"
 )
-
-
-# Lib Rest API ------------------------------------------------------------------
-
-if (BUILD_REST_API_PACKAGE)
-	add_library(${LIB_REST_PROJECT_NAME} ${LIB_REST_FILES})
-
-	create_source_groups(${LIB_REST_FILES})
-
-	target_include_directories(${LIB_REST_PROJECT_NAME} SYSTEM
-		PUBLIC ${DROGON_INCLUDE_DIRS}
-
-		${LIB_REST_INCLUDE_PATHS}
-		${Boost_INCLUDE_DIRS}
-		"${LIB_INCLUDE_PATHS}"
-		"${EXTERNAL_INCLUDE_PATHS}"
-		"${EXTERNAL_C_INCLUDE_PATHS}"
-	)
-
-	target_link_libraries(${LIB_REST_PROJECT_NAME} ${LIB_PROJECT_NAME} Drogon::Drogon)
-endif()
 
 # Lib Cxx ----------------------------------------------------------------------
 

@@ -46,10 +46,6 @@
 #	include "SourceGroupFactoryModulePython.h"
 #endif	  // BUILD_PYTHON_LANGUAGE_PACKAGE
 
-#if BUILD_REST_API_PACKAGE
-#	include "rest_api_main.h"
-#endif
-
 void signalHandler(int signum)
 {
 	std::cout << "interrupt indexing" << std::endl;
@@ -137,9 +133,6 @@ int main(int argc, char* argv[])
 	}
 
 	setupPlatform(argc, argv);
-#if BUILD_REST_API_PACKAGE
-	startup_rest_api_server();
-#endif // BUILD_REST_API_PACKAGE
 
 	if (commandLineParser.runWithoutGUI())
 	{

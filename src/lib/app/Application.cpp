@@ -33,6 +33,10 @@
 
 #include "CppSQLite3.h"
 
+#if BUILD_REST_API_PACKAGE
+#	include "rest_api_main.h"
+#endif
+
 std::shared_ptr<Application> Application::s_instance;
 std::string Application::s_uuid;
 
@@ -64,6 +68,10 @@ void Application::createInstance(
 
 	s_instance->m_storageCache = std::make_shared<StorageCache>();
 
+#if BUILD_REST_API_PACKAGE
+	startup_rest_api_server(s_instance->m_storageCache.get());
+#endif	  // BUILD_REST_API_PACKAGE
+
 	if (hasGui)
 	{
 		s_instance->m_mainView = viewFactory->createMainView(s_instance->m_storageCache.get());
@@ -90,6 +98,10 @@ void Application::destroyInstance()
 	MessageQueue::getInstance()->stopMessageLoop();
 	TaskManager::destroyScheduler(TabId::background());
 	TaskManager::destroyScheduler(TabId::app());
+
+#if BUILD_REST_API_PACKAGE
+	shutdown_rest_api_server();
+#endif
 
 	s_instance.reset();
 }

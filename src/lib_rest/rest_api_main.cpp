@@ -1,6 +1,7 @@
 #include "rest_api_main.h"
 #include <drogon/HttpAppFramework.h>
 #include <thread>
+#include <StorageAccess.h>
 
 void rest_api_woker()
 {
@@ -9,9 +10,17 @@ void rest_api_woker()
 	drogon::app().run();
 }
 
-void startup_rest_api_server()
+static StorageAccess* s_storageInstance = nullptr;
+
+StorageAccess* getStorageInstance()
 {
+	return s_storageInstance;
+}
+
+void startup_rest_api_server(StorageAccess* storageInstance)
+{
+	s_storageInstance = storageInstance;
 	static std::thread rest_api_thread(rest_api_woker);
 }
 
-void shutdown_server() {}
+void shutdown_rest_api_server() {}
