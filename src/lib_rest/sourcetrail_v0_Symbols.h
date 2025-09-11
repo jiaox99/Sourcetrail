@@ -1,6 +1,6 @@
 #pragma once
 
-#include <drogon/HttpSimpleController.h>
+#include <drogon/HttpController.h>
 
 using namespace drogon;
 
@@ -8,14 +8,14 @@ namespace sourcetrail
 {
 namespace v0
 {
-class Symbols : public drogon::HttpSimpleController<Symbols>
+class Symbols : public drogon::HttpController<Symbols>
 {
   public:
-    void asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) override;
-    PATH_LIST_BEGIN
-	PATH_ADD("/", Get);
-    PATH_ADD("/symbols", Get);
-    PATH_LIST_END
+    METHOD_LIST_BEGIN
+    METHOD_ADD(Symbols::fuzzyQuery, "/fuzzyQuery/{}", Get);
+    METHOD_LIST_END
+private:
+	void fuzzyQuery(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, const std::string& query) const;
 };
 }
 }

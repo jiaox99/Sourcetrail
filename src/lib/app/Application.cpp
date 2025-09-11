@@ -247,7 +247,9 @@ void Application::handleMessage(MessageIndexingFinished* message)
 	}
 	else
 	{
+#if !BUILD_REST_API_PACKAGE
 		MessageQuitApplication().dispatch();
+#endif
 	}
 }
 
@@ -425,7 +427,9 @@ void Application::refreshProject(RefreshMode refreshMode, bool shallowIndexingRe
 
 		if (!m_hasGUI && !m_project->isIndexing())
 		{
+#if !BUILD_REST_API_PACKAGE
 			MessageQuitApplication().dispatch();
+#endif
 		}
 	}
 }

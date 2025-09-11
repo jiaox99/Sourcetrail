@@ -6,7 +6,7 @@
 void rest_api_woker()
 {
 	drogon::app().addListener("0.0.0.0", 9984);
-	drogon::app().loadConfigFile("config.json");
+	//drogon::app().loadConfigFile("config.json");
 	drogon::app().run();
 }
 
