@@ -358,7 +358,7 @@ target_include_directories(${LIB_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
 
-target_link_libraries(${LIB_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${LIB_GUI_PROJECT_NAME} ${Boost_LIBRARIES})
+target_link_libraries(${LIB_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${Boost_LIBRARIES})
 
 #configure language package defines
 configure_file(
