@@ -26,7 +26,7 @@ void FullTextSearchIndex::addFile(Id fileId, const std::wstring& fileContent)
 
 std::vector<FullTextSearchResult> FullTextSearchIndex::searchForTerm(const std::wstring& term) const
 {
-	TRACE();
+	TRACE("FTS searchForTerm");
 
 	std::vector<FullTextSearchResult> ret;
 	{

@@ -1576,7 +1576,7 @@ std::vector<std::vector<long>> SqliteIndexStorage::queryFTSFileContentOffsets(co
 	{
 		std::vector<long> offset;
 		//LOG_INFO_STREAM(<< "FileID:" << q.getInt64Field(0) << "OffsetsInfo:" << q.getStringField(1));
-		offset.push_back(q.getInt64Field(0));
+		offset.push_back((long)q.getInt64Field(0));
 		std::istringstream ss(q.getStringField(1));
 		std::string token;
 		int count = 0;

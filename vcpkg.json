@@ -12,7 +12,7 @@
     },
     {
       "name": "llvm",
-      "version>=": "15.0.7"
+      "version>=": "18.1.6"
     },
     {
       "name": "drogon",
