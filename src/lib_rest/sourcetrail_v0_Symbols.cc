@@ -31,10 +31,16 @@ void Symbols::fuzzyQuery(const HttpRequestPtr& req, std::function<void(const Htt
 	{
 		for (const auto& tokenName : entry.tokenNames)
 		{
-			jsonResult.append(to_string(NameHierarchy::serialize(tokenName)));
+			Json::Value tokenValue;
+			tokenValue["fullName"] = to_string(tokenName.getQualifiedName());
+			tokenValue["serializedName"] = to_string(NameHierarchy::serialize(tokenName));
+			jsonResult.append(tokenValue);
 			if (++count >= limit)
 				break;
 		}
+
+		if (count >= limit)
+			break;
 	}
 	auto resp = HttpResponse::newHttpJsonResponse(jsonResult);
 	callback(resp);
