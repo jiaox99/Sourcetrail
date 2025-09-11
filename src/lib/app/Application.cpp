@@ -41,7 +41,7 @@ std::shared_ptr<Application> Application::s_instance;
 std::string Application::s_uuid;
 
 void Application::createInstance(
-	const Version& version, ViewFactory* viewFactory, NetworkFactory* networkFactory)
+	const Version& version, ViewFactory* viewFactory, NetworkFactory* networkFactory, int restServerPort)
 {
 	bool hasGui = (viewFactory != nullptr);
 
@@ -69,7 +69,7 @@ void Application::createInstance(
 	s_instance->m_storageCache = std::make_shared<StorageCache>();
 
 #if BUILD_REST_API_PACKAGE
-	startup_rest_api_server(s_instance->m_storageCache.get());
+	startup_rest_api_server(s_instance->m_storageCache.get(), restServerPort);
 #endif	  // BUILD_REST_API_PACKAGE
 
 	if (hasGui)

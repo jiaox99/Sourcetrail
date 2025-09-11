@@ -7,6 +7,7 @@
 
 #include "CommandlineCommandConfig.h"
 #include "CommandlineCommandIndex.h"
+#include "CommandlineCommandServer.h"
 #include "CommandlineHelper.h"
 #include "ConfigManager.h"
 #include "TextAccess.h"
@@ -28,6 +29,7 @@ CommandLineParser::CommandLineParser(const std::string& version): m_version(vers
 
 	m_commands.push_back(std::make_unique<commandline::CommandlineCommandConfig>(this));
 	m_commands.push_back(std::make_unique<commandline::CommandlineCommandIndex>(this));
+	m_commands.push_back(std::make_unique<commandline::CommandlineCommandServer>(this));
 
 	for (auto& command: m_commands)
 	{

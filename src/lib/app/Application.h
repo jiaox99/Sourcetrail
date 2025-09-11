@@ -34,7 +34,7 @@ class Application
 {
 public:
 	static void createInstance(
-		const Version& version, ViewFactory* viewFactory, NetworkFactory* networkFactory);
+		const Version& version, ViewFactory* viewFactory, NetworkFactory* networkFactory, int restServerPort=9984);
 	static std::shared_ptr<Application> getInstance();
 	static void destroyInstance();
 
