@@ -7,6 +7,7 @@
 
 #include "CommandlineCommandConfig.h"
 #include "CommandlineCommandIndex.h"
+#include "language_packages.h"
 #if BUILD_REST_API_PACKAGE
 #include "CommandlineCommandServer.h"
 #endif	  // BUILD_REST_API_PACKAGE
