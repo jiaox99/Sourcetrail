@@ -29,6 +29,7 @@ CommandlineCommand::ReturnStatus CommandlineCommandServer::parse(std::vector<std
 	po::variables_map vm;
 	try
 	{
+		m_parser->setIsServerMode();
 		po::store(
 			po::command_line_parser(args).options(m_options).positional(m_positional).run(), vm);
 		po::notify(vm);

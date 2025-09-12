@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
 
 		commandLineParser.parse();
 
-		Application::createInstance(version, nullptr, nullptr, commandLineParser.getRESTServerPort());
+		Application::createInstance(version, nullptr, nullptr, commandLineParser.getRESTServerPort(), commandLineParser.getIsServerMode());
 		ScopedFunctor f([]() { Application::destroyInstance(); });
 
 		ApplicationSettingsPrefiller::prefillPaths(ApplicationSettings::getInstance().get());

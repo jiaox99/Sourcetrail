@@ -46,6 +46,9 @@ public:
 	inline void setRESTServerPort(int port) { m_port = port; }
 	inline int getRESTServerPort() const { return m_port; }
 
+	inline void setIsServerMode() { m_serverMode = true; }
+	inline bool getIsServerMode() const { return m_serverMode; }
+
 private:
 	void processProjectfile();
 	void printHelp() const;
@@ -64,6 +67,7 @@ private:
 	bool m_quit = false;
 	bool m_withoutGUI = false;
 	int m_port = 0;
+	bool m_serverMode = false;
 
 	std::wstring m_errorString;
 };
