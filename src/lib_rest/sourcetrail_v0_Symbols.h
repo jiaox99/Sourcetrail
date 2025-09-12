@@ -23,7 +23,7 @@ inline SymbolQueryRequest fromRequest(const HttpRequest& req)
 		return queryReq;
 	}
 
-	if (!json->find("symbolFullNames")->isNull())
+	if (json->isMember("symbolFullNames"))
 	{
 		for (auto& symbolFullName: (*json)["symbolFullNames"])
 		{
@@ -31,7 +31,7 @@ inline SymbolQueryRequest fromRequest(const HttpRequest& req)
 		}
 	}
 
-	if (!json->find("nodeTypes")->isNull())
+	if (json->isMember("nodeTypes"))
 	{
 		for (auto& nodeType: (*json)["nodeTypes"])
 		{
@@ -39,7 +39,7 @@ inline SymbolQueryRequest fromRequest(const HttpRequest& req)
 		}
 	}
 
-	if (!json->find("edgeTypes")->isNull())
+	if (json->isMember("edgeTypes"))
 	{
 		for (auto& edgeType: (*json)["edgeTypes"])
 		{
@@ -47,7 +47,7 @@ inline SymbolQueryRequest fromRequest(const HttpRequest& req)
 		}
 	}
 
-	if (!json->find("maxDepth")->isNull())
+	if (json->isMember("maxDepth"))
 	{
 		queryReq.maxDepth = (*json)["maxDepth"].asInt();
 	}
