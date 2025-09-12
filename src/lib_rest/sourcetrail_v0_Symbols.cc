@@ -5,19 +5,10 @@
 #include "NodeTypeSet.h"
 #include "Graph.h"
 #include "NameHierarchy.h"
+#include "rest_util.h"
 
 using namespace sourcetrail::v0;
 using namespace drogon;
-
-std::wstring to_wstring(const std::string& str)
-{
-	return boost::locale::conv::utf_to_utf<wchar_t>(str);
-}
-
-std::string to_string(const std::wstring& wstr)
-{
-	return boost::locale::conv::utf_to_utf<char>(wstr);
-}
 
 // Add definition of your processing function here
 void Symbols::fuzzyQuery(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, const std::string& query) const
@@ -46,20 +37,11 @@ void Symbols::fuzzyQuery(const HttpRequestPtr& req, std::function<void(const Htt
 	callback(resp);
 }
 
-void errorResponse(const std::string& message, std::function<void(const drogon::HttpResponsePtr&)>& callback)
-{
-	auto resp = HttpResponse::newHttpResponse();
-	resp->setContentTypeCode(CT_TEXT_PLAIN);
-	resp->setStatusCode(k200OK);
-	resp->setBody(message);
-	callback(resp);
-}
-
 bool validateQueryRequest(const SymbolQueryRequest& query, std::function<void(const drogon::HttpResponsePtr&)>& callback)
 {
 	if (query.symbolFullNames.empty())
 	{
-		errorResponse("No symbolFullNames provided", callback);
+		message_response("No symbolFullNames provided", callback);
 		return false;
 	}
 
@@ -135,7 +117,7 @@ void Symbols::customGraphQuery(const SymbolQueryRequest&& query, std::function<v
 	symbolNameToIds(query.symbolFullNames, symbolIds, storage);
 	if (symbolIds.size() != 2)
 	{
-		errorResponse("Two Symbol Names needed", callback);
+		message_response("Two Symbol Names needed", callback);
 		return;
 	}
 	auto graph = storage->getGraphForTrail(symbolIds[0], symbolIds[1], fromNodeKindStrings(query.nodeTypes), fromEdgeTypeStrings(query.edgeTypes), true, query.maxDepth, true);
