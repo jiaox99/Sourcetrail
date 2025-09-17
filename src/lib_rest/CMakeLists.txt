@@ -7,6 +7,9 @@ add_files(
 	rest_api_main.h
 	rest_api_main.cpp
 
+    sourcetrail_v0_Codes.h
+    sourcetrail_v0_Codes.cc
+    
 	sourcetrail_v0_Projects.h
 	sourcetrail_v0_Projects.cc
 
