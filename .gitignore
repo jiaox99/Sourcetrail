@@ -79,3 +79,4 @@ out/
 testing/
 CMakePresets.json
 vcpkg_installed/
+.cache/
