@@ -93,6 +93,7 @@ public:
 	std::set<FilePath> getIncompleteFiles() const;
 	bool getFilePathIndexed(const FilePath& path) const;
 
+	void clearCacheFiles();
 	void buildCaches();
 
 	void optimizeMemory();
@@ -330,6 +331,7 @@ private:
 	void addCompleteFlagsToSourceLocationCollection(SourceLocationCollection* collection) const;
 	void addInheritanceChainsToGraph(const std::vector<Id>& nodeIds, Graph* graph) const;
 
+	FilePath getCacheFilePath(const char* cacheName) const;
 	void buildFilePathMaps();
 	void buildSearchIndex();
 	void buildFullTextSearchIndex() const;
@@ -361,6 +363,11 @@ private:
 
 	mutable FilePathMapCache m_filePathMapCache;
 	flashmapper::Mapper m_filePathMapCacheMapper;
+
+	const char* FILE_PATH_MAP_CACHE_FILE = "filepathcache.idx";
+	const char* SYMBOL_INDEX_CACHE_FILE = "symbol.idx";
+	const char* FILE_INDEX_CACHE_FILE = "file.idx";
+	const char* HIERARCHY_INDEX_CACHE_FILE = "hierarchy.idx";
 };
 
 #endif	  // PERSISTENT_STORAGE_H

@@ -477,6 +477,14 @@ bool PersistentStorage::getFilePathIndexed(const FilePath& path) const
 	return false;
 }
 
+void PersistentStorage::clearCacheFiles()
+{
+	boost::filesystem::remove(getCacheFilePath(FILE_PATH_MAP_CACHE_FILE).getPath());
+	boost::filesystem::remove(getCacheFilePath(SYMBOL_INDEX_CACHE_FILE).getPath());
+	boost::filesystem::remove(getCacheFilePath(FILE_INDEX_CACHE_FILE).getPath());
+	boost::filesystem::remove(getCacheFilePath(HIERARCHY_INDEX_CACHE_FILE).getPath());
+}
+
 void PersistentStorage::buildCaches()
 {
 	TRACE("PersistentStorage buildCaches");
@@ -3300,12 +3308,17 @@ void PersistentStorage::addInheritanceChainsToGraph(const std::vector<Id>& activ
 	}
 }
 
+FilePath PersistentStorage::getCacheFilePath(const char* cacheFileName) const
+{
+	static const FilePath dbPath = getIndexDbFilePath().getParentDirectory();
+	return dbPath.getConcatenated(FilePath(cacheFileName));
+}
+
 void PersistentStorage::buildFilePathMaps()
 {
 	TRACE("PersistentStorage buildFilePathMaps");
 
-	const FilePath dbPath = getIndexDbFilePath();
-	const FilePath filePathCachePath = dbPath.getParentDirectory().getConcatenated(FilePath("filepathcache.idx"));
+	const FilePath filePathCachePath = getCacheFilePath("filepathcache.idx");
 
 
 	if (filePathCachePath.exists())
@@ -3346,8 +3359,8 @@ void PersistentStorage::buildSearchIndex()
 	TRACE("PersistentStorage buildSearchIndex");
 
 	const FilePath dbPath = getIndexDbFilePath();
-	const FilePath symbolIndexPath = dbPath.getParentDirectory().getConcatenated(FilePath("symbols.idx"));
-	const FilePath fileIndexPath = dbPath.getParentDirectory().getConcatenated(FilePath("files.idx"));
+	const FilePath symbolIndexPath = getCacheFilePath("symbols.idx");
+	const FilePath fileIndexPath = getCacheFilePath("files.idx");
 
 	if (symbolIndexPath.exists())
 	{
@@ -3539,9 +3552,7 @@ void PersistentStorage::buildHierarchyCache()
 {
 	TRACE("PersistentStorage buildHierarchyCache");
 
-	const FilePath dbPath = getIndexDbFilePath();
-	const FilePath hierarchyCachePath = dbPath.getParentDirectory().getConcatenated(
-		FilePath("hierarchy.idx"));
+	const FilePath hierarchyCachePath = getCacheFilePath("hierarchy.idx");
 	if (hierarchyCachePath.exists())
 	{
 		m_hierarchyCache.load(hierarchyCachePath.str(), m_hierarchyCacheMapper);
