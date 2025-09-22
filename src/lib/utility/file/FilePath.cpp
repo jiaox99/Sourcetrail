@@ -4,6 +4,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "logging.h"
 #include "utilityString.h"
@@ -404,7 +405,7 @@ bool FilePath::contains(const FilePath& other) const
 			return false;
 		}
 
-		if (*it != *it2)
+		if (!boost::iequals(it->generic_string(), it2->generic_string()))
 		{
 			return false;
 		}
