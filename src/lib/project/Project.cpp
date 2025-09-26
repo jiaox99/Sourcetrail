@@ -538,6 +538,7 @@ void Project::buildIndex(RefreshInfo info, std::shared_ptr<DialogView> dialogVie
 	MessageIndexingStatus(true, 0).dispatch();
 
 	m_storageCache->clear();
+	m_storage->clearCacheFiles();
 	m_storageCache->setSubject(m_storage);
 
 	const FilePath indexDbFilePath = m_settings->getDBFilePath();

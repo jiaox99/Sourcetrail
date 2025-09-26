@@ -673,6 +673,9 @@ target_link_libraries(
 	${LIB_PROJECT_NAME}
 )
 
+# change thread stack size to 64Mb
+target_link_options(${APP_INDEXER_NAME} PRIVATE /STACK:67108864)
+
 if (APPLE)
 	find_library(CORE_FOUNDATION CoreFoundation)
 	target_link_libraries(${APP_INDEXER_NAME} ${CORE_FOUNDATION})
@@ -765,6 +768,9 @@ if (BUILD_REST_API_PACKAGE)
 			"-Wl,--no-whole-archive")
 	endif ()
 endif()
+
+# change thread stack size to 64Mb
+target_link_options(${APP_PROJECT_NAME} PRIVATE /STACK:67108864)
 
 if (WIN32)
     target_link_libraries(${APP_PROJECT_NAME} "bcrypt")

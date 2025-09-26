@@ -71,7 +71,7 @@ if [ $CLEAN_AND_SETUP = true ]; then
 	echo -e $INFO "$INFO Running cmake with 64 bit configuration"
 	mkdir -p build
 	cd build
-	cmake -G "Visual Studio 17 2022" -DFlashMapper_DIR="F:/StudySpace/FlashMapper" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="F:/StudySpace/vcpkg/scripts/buildsystems/vcpkg.cmake" -DQt5_DIR=${Qt5_64_DIR} -DBUILD_CXX_LANGUAGE_PACKAGE=ON -DBUILD_JAVA_LANGUAGE_PACKAGE=OFF -DBUILD_PYTHON_LANGUAGE_PACKAGE=OFF ..
+	cmake -G "Visual Studio 17 2022" -DFlashMapper_DIR="E:/StudySpace/FlashMapper" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="E:/StudySpace/vcpkg/scripts/buildsystems/vcpkg.cmake" -DQt5_DIR=${Qt5_64_DIR} -DBUILD_CXX_LANGUAGE_PACKAGE=ON -DBUILD_JAVA_LANGUAGE_PACKAGE=OFF -DBUILD_PYTHON_LANGUAGE_PACKAGE=OFF ..
 	cd ..
 fi
 
