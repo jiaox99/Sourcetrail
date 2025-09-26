@@ -12,12 +12,11 @@ void Projects::list(const drogon::HttpRequestPtr& req, std::function<void(const 
 	if (s_jsonProjects.empty())
 	{
 		auto projects = ApplicationSettings::getInstance()->getRecentProjects();
-		Json::Value jsonResult;
 		for (const auto& project: projects)
 		{
 			if (project.exists())
 			{
-				jsonResult.append(project.str());
+				s_jsonProjects.append(project.str());
 			}
 		}
 	}
@@ -33,9 +32,9 @@ void Projects::list(const drogon::HttpRequestPtr& req, std::function<void(const 
 	}
 }
 
-void Projects::load(const drogon::HttpRequestPtr& req, std::function<void(const drogon::HttpResponsePtr&)>&& callback, const std::string& query) const
+void Projects::load(const ProjectLoadRequest&& req, std::function<void(const drogon::HttpResponsePtr&)>&& callback) const
 {
-	FilePath projectFilePath(query);
+	FilePath projectFilePath(req.projectFilePath);
 	if (!projectFilePath.exists())
 	{
 		message_response("Project path is not exist", callback);
