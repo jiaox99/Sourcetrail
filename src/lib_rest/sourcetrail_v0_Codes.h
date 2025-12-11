@@ -2,7 +2,39 @@
 
 #include <drogon/HttpController.h>
 
-using namespace drogon;
+struct CodesQueryRequest
+{
+    std::string codeFilePath;
+    int startLine = -1;
+    int endLine = -1;
+};
+
+namespace drogon
+{
+    template <>
+    inline CodesQueryRequest fromRequest(const HttpRequest& req)
+    {
+        auto json = req.getJsonObject();
+        CodesQueryRequest queryReq;
+        if (json == nullptr)
+        {
+            return queryReq;
+        }
+        if (json->isMember("codeFilePath"))
+        {
+            queryReq.codeFilePath = (*json)["codeFilePath"].asString();
+        }
+        if (json->isMember("startLine"))
+        {
+            queryReq.startLine = (*json)["startLine"].asInt();
+        }
+        if (json->isMember("endLine"))
+        {
+            queryReq.endLine = (*json)["endLine"].asInt();
+        }
+        return queryReq;
+    }
+} // namespace drogon
 
 namespace sourcetrail
 {
@@ -10,17 +42,13 @@ namespace v0
 {
 class Codes : public drogon::HttpController<Codes>
 {
-  public:
+public:
     METHOD_LIST_BEGIN
-    // use METHOD_ADD to add your custom processing function here;
-    // METHOD_ADD(Codes::get, "/{2}/{1}", Get); // path is /sourcetrail/v0/Codes/{arg2}/{arg1}
-    // METHOD_ADD(Codes::your_method_name, "/{1}/{2}/list", Get); // path is /sourcetrail/v0/Codes/{arg1}/{arg2}/list
-    // ADD_METHOD_TO(Codes::your_method_name, "/absolute/path/{1}/{2}/list", Get); // path is /absolute/path/{arg1}/{arg2}/list
-
+      METHOD_ADD(Codes::query_codes, "/", drogon::Post);
     METHOD_LIST_END
-    // your declaration of processing function maybe like this:
-    // void get(const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback, int p1, std::string p2);
-    // void your_method_name(const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback, double p1, int p2) const;
+
+private:
+    void query_codes(const CodesQueryRequest&& req, std::function<void (const drogon::HttpResponsePtr &)> &&callback) const;
 };
 }
 }

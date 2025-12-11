@@ -64,12 +64,13 @@ namespace v0
 
 class Symbols : public drogon::HttpController<Symbols>
 {
-  public:
+public:
     METHOD_LIST_BEGIN
     METHOD_ADD(Symbols::fuzzyQuery, "/fuzzyQuery/{}", drogon::Get);
 	METHOD_ADD(Symbols::graphQuery, "/graphQuery", drogon::Post);
 	METHOD_ADD(Symbols::customGraphQuery, "/customGraphQuery", drogon::Post);
     METHOD_LIST_END
+
 private:
 	void fuzzyQuery(const drogon::HttpRequestPtr& req, std::function<void(const drogon::HttpResponsePtr&)>&& callback, const std::string& query) const;
 	void graphQuery(const SymbolQueryRequest&& query, std::function<void(const drogon::HttpResponsePtr&)>&& callback) const;
