@@ -267,6 +267,11 @@ void Symbols::graphQuery(const SymbolQueryRequest&& query, std::function<void(co
 	auto *storage = getStorageInstance();
 	std::vector<Id> symbolIds;
 	symbolNameToIds(query.symbolFullNames, symbolIds, storage);
+	if (symbolIds.empty())
+	{
+		message_response("No valid Symbol Names found", callback);
+		return;
+	}
 	std::vector<Id> expandedNodeIds;
 	bool isNameSpace = false;
 	auto graph = storage->getGraphForActiveTokenIds(symbolIds, expandedNodeIds, &isNameSpace);
