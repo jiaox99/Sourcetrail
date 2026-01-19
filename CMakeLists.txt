@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.16)
 
 if (WIN32 AND (CMAKE_GENERATOR STREQUAL "Ninja"))
 	set(CMAKE_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE})
@@ -66,6 +66,11 @@ if (WIN32)
 endif ()
 
 message ("bash: '${BASH}'")
+
+# Error if FlashMapper_DIR is not set
+if (NOT DEFINED FlashMapper_DIR)
+	message(FATAL_ERROR "FlashMapper_DIR is not set. Please set FlashMapper_DIR to the FlashMapper directory.")
+endif ()
 
 
 # Project ----------------------------------------------------------------------
