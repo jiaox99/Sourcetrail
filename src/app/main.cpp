@@ -143,7 +143,9 @@ int main(int argc, char* argv[])
 
 		setupLogging();
 
-		Application::createInstance(version, nullptr, nullptr);
+		commandLineParser.parse();
+
+		Application::createInstance(version, nullptr, nullptr, commandLineParser.getRESTServerPort(), commandLineParser.getIsServerMode());
 		ScopedFunctor f([]() { Application::destroyInstance(); });
 
 		ApplicationSettingsPrefiller::prefillPaths(ApplicationSettings::getInstance().get());
@@ -152,8 +154,6 @@ int main(int argc, char* argv[])
 		signal(SIGINT, signalHandler);
 		signal(SIGTERM, signalHandler);
 		signal(SIGABRT, signalHandler);
-
-		commandLineParser.parse();
 
 		if (commandLineParser.exitApplication())
 		{

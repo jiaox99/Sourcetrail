@@ -34,7 +34,7 @@ class Application
 {
 public:
 	static void createInstance(
-		const Version& version, ViewFactory* viewFactory, NetworkFactory* networkFactory);
+		const Version& version, ViewFactory* viewFactory, NetworkFactory* networkFactory, int restServerPort=9984, bool isServerMode=false);
 	static std::shared_ptr<Application> getInstance();
 	static void destroyInstance();
 
@@ -62,7 +62,7 @@ private:
 	static std::shared_ptr<Application> s_instance;
 	static std::string s_uuid;
 
-	Application(bool withGUI = true);
+	Application(bool withGUI = true, bool isServerMode=false);
 
 	void handleMessage(MessageActivateWindow* message) override;
 	void handleMessage(MessageCloseProject* message) override;
@@ -86,6 +86,7 @@ private:
 	bool checkSharedMemory();
 
 	const bool m_hasGUI;
+	const bool m_isServerMode;
 	bool m_loadedWindow = false;
 
 	std::shared_ptr<Project> m_project;

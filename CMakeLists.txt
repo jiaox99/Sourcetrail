@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.16)
 
 if (WIN32 AND (CMAKE_GENERATOR STREQUAL "Ninja"))
 	set(CMAKE_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE})
@@ -8,6 +8,7 @@ set(BUILD_JAVA_LANGUAGE_PACKAGE OFF CACHE BOOL "Add Java support to the Sourcetr
 set(BUILD_PYTHON_LANGUAGE_PACKAGE OFF CACHE BOOL "Add Python support to the Sourcetrail indexer.")
 set(DOCKER_BUILD OFF CACHE BOOL "Build runs in Docker")
 set(TREAT_WARNINGS_AS_ERRORS ON CACHE BOOL "Treat compiler warnings as errors")
+set(BUILD_REST_API_PACKAGE ON CACHE BOOL "Add REST API support")
 set(VCPKG_MANIFEST_MODE OFF CACHE BOOL "Never auto-install from vcpkg.json")
 
 #set (CMAKE_VERBOSE_MAKEFILE ON)
@@ -44,6 +45,7 @@ set(APP_INDEXER_NAME "${PROJECT_NAME}_indexer")
 set(LIB_UTILITY_PROJECT_NAME "${PROJECT_NAME}_lib_utility")
 set(LIB_GUI_PROJECT_NAME "${PROJECT_NAME}_lib_gui")
 set(LIB_CXX_PROJECT_NAME "${PROJECT_NAME}_lib_cxx")
+set(LIB_REST_PROJECT_NAME "${PROJECT_NAME}_lib_rest")
 set(LIB_JAVA_PROJECT_NAME "${PROJECT_NAME}_lib_java")
 set(LIB_PYTHON_PROJECT_NAME "${PROJECT_NAME}_lib_python")
 set(LIB_PROJECT_NAME "${PROJECT_NAME}_lib")
@@ -64,6 +66,11 @@ if (WIN32)
 endif ()
 
 message ("bash: '${BASH}'")
+
+# Error if FlashMapper_DIR is not set
+if (NOT DEFINED FlashMapper_DIR)
+	message(FATAL_ERROR "FlashMapper_DIR is not set. Please set FlashMapper_DIR to the FlashMapper directory.")
+endif ()
 
 
 # Project ----------------------------------------------------------------------
@@ -222,6 +229,9 @@ if(Qt5Widgets_FOUND)
 	add_definitions (-DQT_DISABLE_DEPRECATED_BEFORE=${QT_MIN_VERSION_HEX})
 endif()
 
+# Drogon REST API ------------------------------------------------------------------------
+find_package(Drogon 1.9 REQUIRED)
+
 # Setup ---------------------------------------------------------------------------
 
 if (WIN32)
@@ -296,6 +306,7 @@ add_subdirectory(src/lib_cxx)
 add_subdirectory(src/lib_gui)
 add_subdirectory(src/lib_java)
 add_subdirectory(src/lib_python)
+add_subdirectory(src/lib_rest)
 add_subdirectory(src/lib_utility)
 add_subdirectory(src/test)
 
@@ -328,6 +339,27 @@ if (WIN32)
 endif()
 
 
+# Lib Rest API ------------------------------------------------------------------
+
+if (BUILD_REST_API_PACKAGE)
+	add_library(${LIB_REST_PROJECT_NAME} ${LIB_REST_FILES})
+
+	create_source_groups(${LIB_REST_FILES})
+
+	target_include_directories(${LIB_REST_PROJECT_NAME} SYSTEM
+		PUBLIC 
+		${DROGON_INCLUDE_DIRS}
+		${LIB_REST_INCLUDE_PATHS}
+		${Boost_INCLUDE_DIRS}
+		${LIB_INCLUDE_PATHS}
+		${LIB_UTILITY_INCLUDE_PATHS}
+		${EXTERNAL_INCLUDE_PATHS}
+		${EXTERNAL_C_INCLUDE_PATHS}
+	)
+
+	target_link_libraries(${LIB_REST_PROJECT_NAME} Drogon::Drogon)
+endif()
+
 # Lib --------------------------------------------------------------------------
 
 set_source_files_properties(${EXTERNAL_FILES} PROPERTIES COMPILE_FLAGS "-w")
@@ -358,14 +390,13 @@ target_include_directories(${LIB_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
 
-target_link_libraries(${LIB_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${Boost_LIBRARIES})
+target_link_libraries(${LIB_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${LIB_REST_PROJECT_NAME} ${Boost_LIBRARIES})
 
 #configure language package defines
 configure_file(
 	"${CMAKE_SOURCE_DIR}/cmake/language_packages.h.in"
 	"${CMAKE_BINARY_DIR}/src/lib/language_packages.h"
 )
-
 
 # Lib Cxx ----------------------------------------------------------------------
 
@@ -728,8 +759,20 @@ target_link_libraries(
 	$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:${LIB_CXX_PROJECT_NAME}>
 	$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_PROJECT_NAME}>
 	$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_PROJECT_NAME}>
+	$<$<BOOL:${BUILD_REST_API_PACKAGE}>:${LIB_REST_PROJECT_NAME}>
 	${LIB_PROJECT_NAME}
 )
+
+if (BUILD_REST_API_PACKAGE)
+	if (WIN32)
+		target_link_options(${APP_PROJECT_NAME} PRIVATE "/WHOLEARCHIVE:${LIB_REST_PROJECT_NAME}")
+	else ()
+		target_link_options(${APP_PROJECT_NAME} PRIVATE
+			"-Wl,--whole-archive"
+			${LIB_REST_PROJECT_NAME}
+			"-Wl,--no-whole-archive")
+	endif ()
+endif()
 
 # change thread stack size to 64Mb
 target_link_options(${APP_PROJECT_NAME} PRIVATE /STACK:67108864)
@@ -751,6 +794,7 @@ set_property(
 		$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:${LIB_CXX_INCLUDE_PATHS}>
 		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_INCLUDE_PATHS}>
 		$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_INCLUDE_PATHS}>
+		$<$<BOOL:${BUILD_REST_LANGUAGE_PACKAGE}>:${LIB_REST_INCLUDE_PATHS}>
 )
 
 target_include_directories(${APP_PROJECT_NAME} SYSTEM
@@ -840,11 +884,6 @@ target_link_libraries(
 	${TEST_PROJECT_NAME}
 	${LIB_GUI_PROJECT_NAME}
 	"bcrypt"
-	$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:${LIB_CXX_PROJECT_NAME}>
-	$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_PROJECT_NAME}>
-	$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_PROJECT_NAME}>
-	${LIB_PROJECT_NAME}
-	${LIB_GUI_PROJECT_NAME}
 	$<$<BOOL:${BUILD_CXX_LANGUAGE_PACKAGE}>:${LIB_CXX_PROJECT_NAME}>
 	$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_PROJECT_NAME}>
 	$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_PROJECT_NAME}>

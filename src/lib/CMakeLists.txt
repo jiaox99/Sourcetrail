@@ -392,6 +392,8 @@ add_files(
 	utility/commandline/commands/CommandlineCommandConfig.h
 	utility/commandline/commands/CommandlineCommandIndex.cpp
 	utility/commandline/commands/CommandlineCommandIndex.h
+    utility/commandline/commands/CommandlineCommandServer.h
+    utility/commandline/commands/CommandlineCommandServer.cpp
 
 	utility/file/FileInfo.cpp
 	utility/file/FileInfo.h

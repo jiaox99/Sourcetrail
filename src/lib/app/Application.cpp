@@ -33,11 +33,15 @@
 
 #include "CppSQLite3.h"
 
+#if BUILD_REST_API_PACKAGE
+#	include "rest_api_main.h"
+#endif
+
 std::shared_ptr<Application> Application::s_instance;
 std::string Application::s_uuid;
 
 void Application::createInstance(
-	const Version& version, ViewFactory* viewFactory, NetworkFactory* networkFactory)
+	const Version& version, ViewFactory* viewFactory, NetworkFactory* networkFactory, int restServerPort, bool isServerMode)
 {
 	bool hasGui = (viewFactory != nullptr);
 
@@ -60,9 +64,13 @@ void Application::createInstance(
 	TaskManager::createScheduler(TabId::background());
 	MessageQueue::getInstance();
 
-	s_instance = std::shared_ptr<Application>(new Application(hasGui));
+	s_instance = std::shared_ptr<Application>(new Application(hasGui, isServerMode));
 
 	s_instance->m_storageCache = std::make_shared<StorageCache>();
+
+#if BUILD_REST_API_PACKAGE
+	startup_rest_api_server(s_instance->m_storageCache.get(), restServerPort);
+#endif	  // BUILD_REST_API_PACKAGE
 
 	if (hasGui)
 	{
@@ -90,6 +98,10 @@ void Application::destroyInstance()
 	MessageQueue::getInstance()->stopMessageLoop();
 	TaskManager::destroyScheduler(TabId::background());
 	TaskManager::destroyScheduler(TabId::app());
+
+#if BUILD_REST_API_PACKAGE
+	shutdown_rest_api_server();
+#endif
 
 	s_instance.reset();
 }
@@ -129,7 +141,7 @@ void Application::loadStyle(const FilePath& colorSchemePath)
 	GraphViewStyle::loadStyleSettings();
 }
 
-Application::Application(bool withGUI): m_hasGUI(withGUI) {}
+Application::Application(bool withGUI, bool isServerMode): m_hasGUI(withGUI), m_isServerMode(isServerMode) {}
 
 Application::~Application()
 {
@@ -233,7 +245,7 @@ void Application::handleMessage(MessageIndexingFinished* message)
 	{
 		MessageRefreshUI().afterIndexing().dispatch();
 	}
-	else
+	else if (!m_isServerMode)
 	{
 		MessageQuitApplication().dispatch();
 	}
@@ -411,7 +423,7 @@ void Application::refreshProject(RefreshMode refreshMode, bool shallowIndexingRe
 		m_project->refresh(
 			getDialogView(DialogView::UseCase::INDEXING), refreshMode, shallowIndexingRequested);
 
-		if (!m_hasGUI && !m_project->isIndexing())
+		if (!m_hasGUI && !m_project->isIndexing() &&!m_isServerMode)
 		{
 			MessageQuitApplication().dispatch();
 		}
