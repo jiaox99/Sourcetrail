@@ -30,34 +30,39 @@ void CxxAstVisitorComponentIndexer::beginTraverseNestedNameSpecifierLoc(
 		return;
 	}
 
-	switch (loc.getNestedNameSpecifier()->getKind())
+	switch (loc.getNestedNameSpecifier().getKind())
 	{
-	case clang::NestedNameSpecifier::Identifier:
+	case clang::NestedNameSpecifier::Kind::Null:
 		break;
-	case clang::NestedNameSpecifier::Namespace:
+	case clang::NestedNameSpecifier::Kind::Namespace:
 	{
-		Id symbolId = getOrCreateSymbolId(loc.getNestedNameSpecifier()->getAsNamespace());
-		m_client->recordSymbolKind(symbolId, SYMBOL_NAMESPACE);
-		m_client->recordLocation(
-			symbolId, getParseLocation(loc.getLocalBeginLoc()), ParseLocationType::QUALIFIER);
-	}
-	break;
-	case clang::NestedNameSpecifier::NamespaceAlias:
-	{
-		Id symbolId = getOrCreateSymbolId(loc.getNestedNameSpecifier()->getAsNamespaceAlias());
-		m_client->recordSymbolKind(symbolId, SYMBOL_NAMESPACE);
+		const clang::NamespaceBaseDecl* nsBase =
+			loc.getNestedNameSpecifier().getAsNamespaceAndPrefix().Namespace;
+		if (const clang::NamespaceAliasDecl* aliasDecl =
+				clang::dyn_cast_or_null<clang::NamespaceAliasDecl>(nsBase))
+		{
+			Id symbolId = getOrCreateSymbolId(aliasDecl);
+			m_client->recordSymbolKind(symbolId, SYMBOL_NAMESPACE);
 
-		symbolId = getOrCreateSymbolId(
-			loc.getNestedNameSpecifier()->getAsNamespaceAlias()->getAliasedNamespace());
-		m_client->recordSymbolKind(symbolId, SYMBOL_NAMESPACE);
+			symbolId = getOrCreateSymbolId(aliasDecl->getAliasedNamespace());
+			m_client->recordSymbolKind(symbolId, SYMBOL_NAMESPACE);
+		}
+		else if (const clang::NamespaceDecl* nsDecl =
+					 clang::dyn_cast_or_null<clang::NamespaceDecl>(nsBase))
+		{
+			Id symbolId = getOrCreateSymbolId(nsDecl);
+			m_client->recordSymbolKind(symbolId, SYMBOL_NAMESPACE);
+			m_client->recordLocation(
+				symbolId, getParseLocation(loc.getLocalBeginLoc()), ParseLocationType::QUALIFIER);
+		}
 	}
 	break;
-	case clang::NestedNameSpecifier::Global:
-	case clang::NestedNameSpecifier::Super:
+	case clang::NestedNameSpecifier::Kind::Global:
+	case clang::NestedNameSpecifier::Kind::MicrosoftSuper:
 		break;
-	case clang::NestedNameSpecifier::TypeSpec:
-	case clang::NestedNameSpecifier::TypeSpecWithTemplate:
-		if (const clang::CXXRecordDecl* recordDecl = loc.getNestedNameSpecifier()->getAsRecordDecl())
+	case clang::NestedNameSpecifier::Kind::Type:
+		if (const clang::CXXRecordDecl* recordDecl =
+				loc.getNestedNameSpecifier().getAsRecordDecl())
 		{
 			SymbolKind symbolKind = SYMBOL_KIND_MAX;
 			if (recordDecl->isClass())
@@ -81,7 +86,7 @@ void CxxAstVisitorComponentIndexer::beginTraverseNestedNameSpecifierLoc(
 					symbolId, getParseLocation(loc.getLocalBeginLoc()), ParseLocationType::QUALIFIER);
 			}
 		}
-		else if (const clang::Type* type = loc.getNestedNameSpecifier()->getAsType())
+		else if (const clang::Type* type = loc.getNestedNameSpecifier().getAsType())
 		{
 			const ParseLocation parseLocation = getParseLocation(loc.getLocalBeginLoc());
 

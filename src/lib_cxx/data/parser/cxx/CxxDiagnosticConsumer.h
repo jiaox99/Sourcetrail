@@ -2,7 +2,9 @@
 #define CXX_DIAGNOSTIC_CONSUMER
 
 #include "FilePath.h"
+#include <clang/Basic/DiagnosticOptions.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
+#include <memory>
 
 class CanonicalFilePathCache;
 class ParserClient;
@@ -10,9 +12,10 @@ class ParserClient;
 class CxxDiagnosticConsumer: public clang::TextDiagnosticPrinter
 {
 public:
+	/// \p diagOptions must outlive this consumer. The caller retains ownership.
 	CxxDiagnosticConsumer(
 		clang::raw_ostream& os,
-		clang::DiagnosticOptions* diags,
+		clang::DiagnosticOptions& diagOptions,
 		std::shared_ptr<ParserClient> client,
 		std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache,
 		const FilePath& sourceFilePath,

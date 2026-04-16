@@ -62,6 +62,7 @@ void PreprocessorCallbacks::InclusionDirective(
 	llvm::StringRef searchPath,
 	llvm::StringRef relativePath,
 	const clang::Module* imported,
+	bool moduleImported,
 	clang::SrcMgr::CharacteristicKind fileType)
 {
 	if (m_currentFileSymbolId && fileEntry && fileEntry.has_value())

@@ -132,17 +132,6 @@ std::wstring utility::getFileNameOfFileEntry(const clang::FileEntry* entry)
 	if (entry != nullptr)
 	{
 		fileName = utility::decodeFromUtf8(entry->tryGetRealPathName().str());
-		if (fileName.empty())
-		{
-			fileName = utility::decodeFromUtf8(entry->getName().str());
-		}
-		else
-		{
-			fileName = FilePath(utility::decodeFromUtf8(entry->getName().str()))
-						   .getParentDirectory()
-						   .concatenate(FilePath(fileName).fileName())
-						   .wstr();
-		}
 	}
 	return fileName;
 }

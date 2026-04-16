@@ -160,6 +160,12 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 			set (_CLANG_HEADERS_SEARCH_LIST
 				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/lib/clang/${LLVM_VERSION_MAJOR}/include"
 				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/lib64/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/Release/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/RelWithDebInfo/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/Debug/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/Release/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/RelWithDebInfo/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/Debug/lib/clang/${LLVM_VERSION_MAJOR}/include"
 			)
 			foreach (_CLANG_HEADER_PATH ${_CLANG_HEADERS_SEARCH_LIST})
                 message(STATUS ${_CLANG_HEADER_PATH})
@@ -424,6 +430,12 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 		"${EXTERNAL_C_INCLUDE_PATHS}"
 	)
 
+	# For multi-config LLVM builds (Visual Studio), libs are under <build>/<config>/lib/.
+	# Override LLVM_LIBRARY_DIRS to point to the Release lib dir to avoid Debug ABI mismatch.
+	if(IS_DIRECTORY "${LLVM_BINARY_DIR}/Release/lib")
+		set(LLVM_LIBRARY_DIRS "${LLVM_BINARY_DIR}/Release/lib")
+		set(CLANG_LIBRARY_DIRS "${LLVM_BINARY_DIR}/Release/lib")
+	endif()
 	link_directories(${LLVM_LIBRARY_DIRS} ${CLANG_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
 
     if(LLVM_LINK_LLVM_DYLIB)
@@ -452,6 +464,7 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
             clangFrontend
             clangSerialization
             clangDriver
+            clangOptions
             clangTooling
             clangParse
             clangSema
@@ -468,6 +481,7 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
     endif()
 
 	target_link_libraries(${LIB_CXX_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${CLANG_LIBRARIES} ${REQ_LLVM_LIBS})
+
 
 	if (WIN32)
 		target_compile_definitions(${LIB_CXX_PROJECT_NAME} PRIVATE _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # Due to Clang
@@ -613,6 +627,10 @@ target_include_directories(${LIB_GUI_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_INCLUDE_PATHS}"
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
+# Add local LLVM includes BEFORE vcpkg headers to ensure correct abi-breaking.h is used.
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	target_include_directories(${LIB_GUI_PROJECT_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS})
+endif()
 
 # configure platform specific include file
 configure_file(

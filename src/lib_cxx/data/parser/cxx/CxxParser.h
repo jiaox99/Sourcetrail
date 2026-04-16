@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <clang/Basic/DiagnosticOptions.h>
+
 #include "Parser.h"
 
 class CanonicalFilePathCache;
@@ -56,6 +58,8 @@ private:
 
 	std::shared_ptr<FileRegister> m_fileRegister;
 	std::shared_ptr<IndexerStateInfo> m_indexerStateInfo;
+	// DiagnosticOptions must outlive any CxxDiagnosticConsumer created by this parser.
+	mutable clang::DiagnosticOptions m_diagOptions;
 };
 
 #endif	  // CXX_PARSER_H

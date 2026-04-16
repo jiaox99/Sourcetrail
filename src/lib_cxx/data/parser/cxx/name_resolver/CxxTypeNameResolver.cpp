@@ -43,8 +43,17 @@ std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::Type* typ
 		}
 		case clang::Type::InjectedClassName:
 		{
-			return getName(
-				type->getAs<clang::InjectedClassNameType>()->getInjectedSpecializationType());
+			// In LLVM 22, InjectedClassNameType is a TagType; resolve via its decl.
+			std::unique_ptr<CxxDeclName> declName = CxxDeclNameResolver(this).getName(
+				type->getAs<clang::InjectedClassNameType>()->getDecl());
+			if (declName)
+			{
+				return std::make_unique<CxxTypeName>(
+					declName->getName(),
+					declName->getTemplateParameterNames(),
+					declName->getParent());
+			}
+			break;
 		}
 		case clang::Type::Typedef:
 		{
@@ -98,10 +107,7 @@ std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::Type* typ
 			}
 			return typeName;
 		}
-		case clang::Type::Elaborated:
-		{
-			return getName(clang::dyn_cast<clang::ElaboratedType>(type)->getNamedType());
-		}
+		// clang::Type::Elaborated was removed in LLVM 17+; ElaboratedType no longer exists.
 		case clang::Type::Enum:
 		case clang::Type::Record:
 		{
@@ -209,26 +215,8 @@ std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::Type* typ
 				std::vector<std::wstring>(),
 				std::move(specifierName));
 		}
-		case clang::Type::DependentTemplateSpecialization:
-		{
-			const clang::DependentTemplateSpecializationType* dependentType =
-				clang::dyn_cast<clang::DependentTemplateSpecializationType>(type);
-			std::unique_ptr<CxxName> specifierName = CxxSpecifierNameResolver(this).getName(
-				dependentType->getQualifier());
-
-			std::vector<std::wstring> templateArguments;
-			CxxTemplateArgumentNameResolver resolver(this);
-			auto arguments = dependentType->template_arguments();
-			for (unsigned i = 0; i < arguments.size(); i++)
-			{
-				templateArguments.push_back(resolver.getTemplateArgumentName(arguments[i]));
-			}
-
-			return std::make_unique<CxxTypeName>(
-				utility::decodeFromUtf8(dependentType->getIdentifier()->getName().str()),
-				std::move(templateArguments),
-				std::move(specifierName));
-		}
+		// clang::Type::DependentTemplateSpecialization was removed in LLVM 22;
+		// DependentTemplateSpecializationType no longer exists.
 		case clang::Type::PackExpansion:
 		{
 			return getName(clang::dyn_cast<clang::PackExpansionType>(type)->getPattern());

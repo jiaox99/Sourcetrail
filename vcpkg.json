@@ -10,11 +10,7 @@
       "name": "qt5",
       "version>=": "5.15.3"
     },
-    {
-      "name": "llvm",
-      "version>=": "18.1.6"
-    },
-    {
+{
       "name": "drogon",
       "version>=": "1.9.11"
     }
