@@ -33,7 +33,7 @@ void Projects::list(const drogon::HttpRequestPtr& req, std::function<void(const 
 	}
 	else
 	{
-		response["currentProject"] = Json::Value::null;
+		response["currentProject"] = Json::Value(Json::nullValue);
 	}
 
 	auto resp = drogon::HttpResponse::newHttpJsonResponse(response);

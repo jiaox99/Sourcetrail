@@ -347,7 +347,7 @@ if (BUILD_REST_API_PACKAGE)
 	create_source_groups(${LIB_REST_FILES})
 
 	target_include_directories(${LIB_REST_PROJECT_NAME} SYSTEM
-		PUBLIC 
+		PUBLIC
 		${DROGON_INCLUDE_DIRS}
 		${LIB_REST_INCLUDE_PATHS}
 		${Boost_INCLUDE_DIRS}
@@ -355,6 +355,7 @@ if (BUILD_REST_API_PACKAGE)
 		${LIB_UTILITY_INCLUDE_PATHS}
 		${EXTERNAL_INCLUDE_PATHS}
 		${EXTERNAL_C_INCLUDE_PATHS}
+		"${CMAKE_BINARY_DIR}/src/lib"
 	)
 
 	target_link_libraries(${LIB_REST_PROJECT_NAME} Drogon::Drogon)
