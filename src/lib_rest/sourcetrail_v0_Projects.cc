@@ -1,4 +1,5 @@
 #include "sourcetrail_v0_Projects.h"
+#include "Application.h"
 #include "ApplicationSettings.h"
 #include "MessageLoadProject.h"
 #include "rest_util.h"
@@ -21,15 +22,22 @@ void Projects::list(const drogon::HttpRequestPtr& req, std::function<void(const 
 		}
 	}
 
-	if (!s_jsonProjects.empty())
+	Json::Value response;
+	response["projects"] = s_jsonProjects;
+
+	// Add current project path
+	FilePath currentProjectPath = Application::getInstance()->getCurrentProjectPath();
+	if (!currentProjectPath.empty())
 	{
-		auto resp = drogon::HttpResponse::newHttpJsonResponse(s_jsonProjects);
-		callback(resp);
+		response["currentProject"] = currentProjectPath.str();
 	}
 	else
 	{
-		message_response("No projects found", callback);
+		response["currentProject"] = Json::Value::null;
 	}
+
+	auto resp = drogon::HttpResponse::newHttpJsonResponse(response);
+	callback(resp);
 }
 
 void Projects::load(const ProjectLoadRequest&& req, std::function<void(const drogon::HttpResponsePtr&)>&& callback) const
