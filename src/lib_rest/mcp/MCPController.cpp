@@ -30,7 +30,9 @@ void MCP::handleMessages(const drogon::HttpRequestPtr& req,
 	}
 
 	// Route by method
-	if (rpcRequest.method == "tools/list") {
+	if (rpcRequest.method == "initialize") {
+		handleInitialize(rpcRequest, std::move(callback));
+	} else if (rpcRequest.method == "tools/list") {
 		handleToolsList(rpcRequest, std::move(callback));
 	} else if (rpcRequest.method == "tools/call") {
 		handleToolsCall(rpcRequest, std::move(callback));
@@ -42,6 +44,29 @@ void MCP::handleMessages(const drogon::HttpRequestPtr& req,
 		);
 		callback(drogon::HttpResponse::newHttpJsonResponse(errorResp));
 	}
+}
+
+void MCP::handleInitialize(const JsonRpcRequest& request,
+						  std::function<void(const drogon::HttpResponsePtr&)>&& callback) {
+	// Build server capabilities response per MCP protocol
+	Json::Value capabilities;
+	capabilities["tools"] = Json::objectValue;  // We support tools
+
+	Json::Value serverInfo;
+	serverInfo["name"] = "Sourcetrail MCP Server";
+	serverInfo["version"] = "1.0.0";
+
+	Json::Value result;
+	result["protocolVersion"] = "2024-11-05";  // MCP protocol version
+	result["capabilities"] = capabilities;
+	result["serverInfo"] = serverInfo;
+
+	JsonRpcResponse response;
+	response.id = request.id;
+	response.result = result;
+
+	auto jsonResp = JsonRpcProtocol::formatResponse(response);
+	callback(drogon::HttpResponse::newHttpJsonResponse(jsonResp));
 }
 
 void MCP::handleToolsList(const JsonRpcRequest& request,
