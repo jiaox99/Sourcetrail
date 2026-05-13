@@ -18,6 +18,7 @@ public:
 	static FilePath getPythonDirectoryPath();
 	static FilePath getCxxCompilerHeaderDirectoryPath();
 	static FilePath getPythonIndexerFilePath();
+	static FilePath getMCPDirectoryPath();
 };
 
 #endif	  // RESOURCE_PATHS_H

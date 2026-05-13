@@ -4,42 +4,71 @@
 #include "service/CodeService.h"
 #include "rest_util.h"
 #include "FilePath.h"
+#include "ResourcePaths.h"
+#include "logging.h"
+#include <fstream>
 
 namespace sourcetrail {
 namespace mcp {
 
 MCPToolRegistry::MCPToolRegistry() {
-	registerTools();
+	// Try to load from JSON first
+	FilePath jsonPath = ResourcePaths::getMCPDirectoryPath().concatenate(L"tools.json");
+	if (jsonPath.exists()) {
+		registerToolsFromJson(jsonPath.str());
+	} else {
+		// Fallback to hardcoded registration
+		LOG_WARNING("MCP tools config not found at: " + jsonPath.str() + ", using hardcoded definitions");
+	}
 }
 
-void MCPToolRegistry::registerTools() {
-	// Tool 1: sourcetrail_list_projects
-	{
-		ToolDefinition def;
-		def.name = "sourcetrail_list_projects";
-		def.description = "List recently opened Sourcetrail projects and show the currently loaded project";
-		def.inputSchema["type"] = "object";
-		def.inputSchema["properties"] = Json::Value(Json::objectValue);
-		def.inputSchema["required"] = Json::Value(Json::arrayValue);
-
-		ToolHandler handler = [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
-			return service::listProjects();
-		};
-
-		registerTool(def, handler);
+void MCPToolRegistry::registerToolsFromJson(const std::string& jsonPath) {
+	std::ifstream file(jsonPath);
+	if (!file.is_open()) {
+		LOG_ERROR("Failed to open MCP tools config: " + jsonPath);
+		return;
 	}
 
-	// Tool 2: sourcetrail_load_project
-	{
-		ToolDefinition def;
-		def.name = "sourcetrail_load_project";
-		def.description = "Load a Sourcetrail project file (.srctrlprj) for querying";
-		def.inputSchema["type"] = "object";
-		def.inputSchema["properties"]["projectFilePath"]["type"] = "string";
-		def.inputSchema["properties"]["projectFilePath"]["description"] = "Absolute path to .srctrlprj file";
-		def.inputSchema["required"].append("projectFilePath");
+	Json::Value root;
+	Json::CharReaderBuilder builder;
+	std::string errs;
+	if (!Json::parseFromStream(builder, file, &root, &errs)) {
+		LOG_ERROR("Failed to parse MCP tools JSON: " + errs);
+		return;
+	}
 
-		ToolHandler handler = [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
+	const Json::Value& tools = root["tools"];
+	if (!tools.isArray()) {
+		LOG_ERROR("MCP tools JSON: 'tools' field must be an array");
+		return;
+	}
+
+	for (const auto& toolJson : tools) {
+		ToolDefinition def;
+		def.name = toolJson["name"].asString();
+		def.description = toolJson["description"].asString();
+		def.inputSchema = toolJson["inputSchema"];
+
+		std::string handlerName = toolJson["handlerName"].asString();
+		ToolHandler handler = createHandler(handlerName);
+
+		if (handler) {
+			registerTool(def, handler);
+			LOG_INFO("Registered MCP tool: " + def.name);
+		} else {
+			LOG_ERROR("Unknown handler name: " + handlerName + " for tool: " + def.name);
+		}
+	}
+}
+
+ToolHandler MCPToolRegistry::createHandler(const std::string& handlerName) {
+	if (handlerName == "list_projects") {
+		return [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
+			return service::listProjects();
+		};
+	}
+	else if (handlerName == "load_project") {
+		return [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
 			std::string pathStr = args["projectFilePath"].asString();
 			FilePath path(pathStr);
 			auto result = service::loadProject(path);
@@ -49,47 +78,18 @@ void MCPToolRegistry::registerTools() {
 			response["message"] = result.message;
 			return response;
 		};
-
-		registerTool(def, handler);
 	}
-
-	// Tool 3: sourcetrail_fuzzy_search
-	{
-		ToolDefinition def;
-		def.name = "sourcetrail_fuzzy_search";
-		def.description = "Search for symbols (classes, functions, variables, etc.) in the loaded project using fuzzy matching";
-		def.inputSchema["type"] = "object";
-		def.inputSchema["properties"]["query"]["type"] = "string";
-		def.inputSchema["properties"]["query"]["description"] = "Search query string";
-		def.inputSchema["properties"]["maxResults"]["type"] = "integer";
-		def.inputSchema["properties"]["maxResults"]["description"] = "Maximum number of results to return (default: 50)";
-		def.inputSchema["required"].append("query");
-
-		ToolHandler handler = [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
+	else if (handlerName == "fuzzy_search") {
+		return [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
 			service::FuzzySearchParams params;
 			params.query = to_wstring(args["query"].asString());
 			params.maxResults = args.get("maxResults", 50).asInt();
 
 			return service::fuzzySearchSymbols(params, storage);
 		};
-
-		registerTool(def, handler);
 	}
-
-	// Tool 4: sourcetrail_graph_query
-	{
-		ToolDefinition def;
-		def.name = "sourcetrail_graph_query";
-		def.description = "Generate a graph showing relationships for a symbol (inheritance for classes, calls for functions, includes for files). Returns PlantUML diagram format.";
-		def.inputSchema["type"] = "object";
-		def.inputSchema["properties"]["symbolFullNames"]["type"] = "array";
-		def.inputSchema["properties"]["symbolFullNames"]["description"] = "Array of serialized symbol names (use serializedName from fuzzy_search results)";
-		def.inputSchema["properties"]["symbolFullNames"]["items"]["type"] = "string";
-		def.inputSchema["properties"]["maxDepth"]["type"] = "integer";
-		def.inputSchema["properties"]["maxDepth"]["description"] = "Maximum depth for graph traversal (default: 5)";
-		def.inputSchema["required"].append("symbolFullNames");
-
-		ToolHandler handler = [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
+	else if (handlerName == "graph_query") {
+		return [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
 			service::GraphQueryParams params;
 
 			// Extract symbolFullNames array
@@ -109,30 +109,9 @@ void MCPToolRegistry::registerTools() {
 			response["format"] = "plantuml";
 			return response;
 		};
-
-		registerTool(def, handler);
 	}
-
-	// Tool 5: sourcetrail_custom_graph_query
-	{
-		ToolDefinition def;
-		def.name = "sourcetrail_custom_graph_query";
-		def.description = "Find paths between two symbols with optional filtering by node types (class, function, field) and edge types (call, inheritance, usage)";
-		def.inputSchema["type"] = "object";
-		def.inputSchema["properties"]["symbolFullNames"]["type"] = "array";
-		def.inputSchema["properties"]["symbolFullNames"]["description"] = "Exactly two serialized symbol names: [origin, target]";
-		def.inputSchema["properties"]["symbolFullNames"]["items"]["type"] = "string";
-		def.inputSchema["properties"]["maxDepth"]["type"] = "integer";
-		def.inputSchema["properties"]["maxDepth"]["description"] = "Maximum path depth (default: 5)";
-		def.inputSchema["properties"]["nodeTypes"]["type"] = "array";
-		def.inputSchema["properties"]["nodeTypes"]["description"] = "Filter by node types (e.g., ['class', 'function']). Empty means all types.";
-		def.inputSchema["properties"]["nodeTypes"]["items"]["type"] = "string";
-		def.inputSchema["properties"]["edgeTypes"]["type"] = "array";
-		def.inputSchema["properties"]["edgeTypes"]["description"] = "Filter by edge types (e.g., ['call', 'inheritance']). Empty means all types.";
-		def.inputSchema["properties"]["edgeTypes"]["items"]["type"] = "string";
-		def.inputSchema["required"].append("symbolFullNames");
-
-		ToolHandler handler = [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
+	else if (handlerName == "custom_graph_query") {
+		return [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
 			service::GraphQueryParams params;
 
 			// Extract symbolFullNames array
@@ -167,25 +146,9 @@ void MCPToolRegistry::registerTools() {
 			response["diagram"] = to_string(graphOutput);
 			return response;
 		};
-
-		registerTool(def, handler);
 	}
-
-	// Tool 6: sourcetrail_get_code
-	{
-		ToolDefinition def;
-		def.name = "sourcetrail_get_code";
-		def.description = "Retrieve source code content from a file, optionally specifying a line range";
-		def.inputSchema["type"] = "object";
-		def.inputSchema["properties"]["codeFilePath"]["type"] = "string";
-		def.inputSchema["properties"]["codeFilePath"]["description"] = "Absolute path to source code file";
-		def.inputSchema["properties"]["startLine"]["type"] = "integer";
-		def.inputSchema["properties"]["startLine"]["description"] = "Starting line number (1-indexed). Omit or use -1 for start of file.";
-		def.inputSchema["properties"]["endLine"]["type"] = "integer";
-		def.inputSchema["properties"]["endLine"]["description"] = "Ending line number (inclusive). Omit or use -1 for end of file.";
-		def.inputSchema["required"].append("codeFilePath");
-
-		ToolHandler handler = [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
+	else if (handlerName == "get_code") {
+		return [](const Json::Value& args, StorageAccess* storage) -> Json::Value {
 			service::CodeQueryParams params;
 			params.filePath = FilePath(to_wstring(args["codeFilePath"].asString()));
 			params.startLine = args.get("startLine", -1).asInt();
@@ -203,9 +166,9 @@ void MCPToolRegistry::registerTools() {
 			}
 			return response;
 		};
-
-		registerTool(def, handler);
 	}
+
+	return nullptr;  // Unknown handler
 }
 
 void MCPToolRegistry::registerTool(const ToolDefinition& def, ToolHandler handler) {
