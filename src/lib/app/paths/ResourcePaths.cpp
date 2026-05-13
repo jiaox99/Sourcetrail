@@ -56,3 +56,8 @@ FilePath ResourcePaths::getPythonIndexerFilePath()
 	}
 	return getPythonDirectoryPath().concatenate(L"SourcetrailPythonIndexer");
 }
+
+FilePath ResourcePaths::getMCPDirectoryPath()
+{
+	return AppPath::getSharedDataDirectoryPath().concatenate(L"data/mcp/");
+}

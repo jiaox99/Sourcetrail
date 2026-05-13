@@ -32,8 +32,9 @@ public:
 	bool hasTool(const std::string& name) const;
 
 private:
-	void registerTools();
+	void registerToolsFromJson(const std::string& jsonPath);
 	void registerTool(const ToolDefinition& def, ToolHandler handler);
+	ToolHandler createHandler(const std::string& handlerName);
 
 	std::map<std::string, ToolDefinition> toolDefinitions_;
 	std::map<std::string, ToolHandler> toolHandlers_;

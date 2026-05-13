@@ -1,0 +1,129 @@
+{
+  "tools": [
+    {
+      "name": "sourcetrail_list_projects",
+      "description": "List recently opened Sourcetrail projects and show the currently loaded project",
+      "handlerName": "list_projects",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "sourcetrail_load_project",
+      "description": "Load a Sourcetrail project file (.srctrlprj) for querying",
+      "handlerName": "load_project",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectFilePath": {
+            "type": "string",
+            "description": "Absolute path to .srctrlprj file"
+          }
+        },
+        "required": ["projectFilePath"]
+      }
+    },
+    {
+      "name": "sourcetrail_fuzzy_search",
+      "description": "Search for symbols (classes, functions, variables, etc.) in the loaded project using fuzzy matching",
+      "handlerName": "fuzzy_search",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query string"
+          },
+          "maxResults": {
+            "type": "integer",
+            "description": "Maximum number of results to return (default: 50)"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "sourcetrail_graph_query",
+      "description": "Generate a graph showing relationships for a symbol (inheritance for classes, calls for functions, includes for files). Returns PlantUML diagram format.",
+      "handlerName": "graph_query",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "symbolFullNames": {
+            "type": "array",
+            "description": "Array of serialized symbol names (use serializedName from fuzzy_search results)",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxDepth": {
+            "type": "integer",
+            "description": "Maximum depth for graph traversal (default: 5)"
+          }
+        },
+        "required": ["symbolFullNames"]
+      }
+    },
+    {
+      "name": "sourcetrail_custom_graph_query",
+      "description": "Find paths between two symbols with optional filtering by node types (class, function, field) and edge types (call, inheritance, usage)",
+      "handlerName": "custom_graph_query",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "symbolFullNames": {
+            "type": "array",
+            "description": "Exactly two serialized symbol names: [origin, target]",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxDepth": {
+            "type": "integer",
+            "description": "Maximum path depth (default: 5)"
+          },
+          "nodeTypes": {
+            "type": "array",
+            "description": "Filter by node types (e.g., ['class', 'function']). Empty means all types.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "edgeTypes": {
+            "type": "array",
+            "description": "Filter by edge types (e.g., ['call', 'inheritance']). Empty means all types.",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["symbolFullNames"]
+      }
+    },
+    {
+      "name": "sourcetrail_get_code",
+      "description": "Retrieve source code content from a file, optionally specifying a line range",
+      "handlerName": "get_code",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "codeFilePath": {
+            "type": "string",
+            "description": "Absolute path to source code file"
+          },
+          "startLine": {
+            "type": "integer",
+            "description": "Starting line number (1-indexed). Omit or use -1 for start of file."
+          },
+          "endLine": {
+            "type": "integer",
+            "description": "Ending line number (inclusive). Omit or use -1 for end of file."
+          }
+        },
+        "required": ["codeFilePath"]
+      }
+    }
+  ]
+}
