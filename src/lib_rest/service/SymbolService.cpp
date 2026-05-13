@@ -1,44 +1,17 @@
-#include "sourcetrail_v0_Symbols.h"
-#include "service/SymbolService.h"
-#include "rest_api_main.h"
+#include "SymbolService.h"
 #include "StorageAccess.h"
-#include "boost/locale.hpp"
 #include "NodeTypeSet.h"
-#include "Graph.h"
 #include "NameHierarchy.h"
+#include "Graph.h"
 #include "rest_util.h"
 #include <set>
+#include <sstream>
 
-using namespace sourcetrail::v0;
-using namespace drogon;
+namespace sourcetrail {
+namespace service {
 
-// Add definition of your processing function here
-void Symbols::fuzzyQuery(const HttpRequestPtr& req, std::function<void(const HttpResponsePtr&)>&& callback, const std::string& query) const
-{
-	int limit = req->getOptionalParameter<int>("max").value_or(50);
-	auto *storage = getStorageInstance();
-
-	// Use service layer
-	sourcetrail::service::FuzzySearchParams params;
-	params.query = to_wstring(query);
-	params.maxResults = limit;
-
-	Json::Value jsonResult = sourcetrail::service::fuzzySearchSymbols(params, storage);
-
-	auto resp = HttpResponse::newHttpJsonResponse(jsonResult);
-	callback(resp);
-}
-
-bool validateQueryRequest(const SymbolQueryRequest& query, std::function<void(const drogon::HttpResponsePtr&)>& callback)
-{
-	if (query.symbolFullNames.empty())
-	{
-		message_response("No symbolFullNames provided", callback);
-		return false;
-	}
-
-	return true;
-}
+// Helper functions (moved from sourcetrail_v0_Symbols.cc)
+namespace {
 
 void symbolNameToIds(const std::vector<std::string>& symbolFullNames, std::vector<Id>& outSymbolIds, StorageAccess* storage)
 {
@@ -50,7 +23,6 @@ void symbolNameToIds(const std::vector<std::string>& symbolFullNames, std::vecto
 			outSymbolIds.push_back(symbolId);
 	}
 }
-
 
 void printClassNode(std::wostream& wos, const Node& curNode, bool simpleMode=true, const Node* pFieldNode=nullptr)
 {
@@ -65,7 +37,7 @@ void printClassNode(std::wostream& wos, const Node& curNode, bool simpleMode=tru
 				{
 					wos << fieldNode->getNameHierarchy().getRawNameWithSignature() << std::endl;
 				}
-				
+
 			});
 
 		wos << L"---" << std::endl;
@@ -78,7 +50,7 @@ void printClassNode(std::wostream& wos, const Node& curNode, bool simpleMode=tru
 				{
 					wos << fieldNode->getNameHierarchy().getRawNameWithSignature() << std::endl;
 				}
-				
+
 			});
 	}
 
@@ -248,28 +220,6 @@ void printGraphAsField(const Graph& graph, std::wostream& wos, const Node& coreN
 	wos << L"@enduml" << std::endl;
 }
 
-void Symbols::graphQuery(const SymbolQueryRequest&& query, std::function<void(const drogon::HttpResponsePtr&)>&& callback) const
-{
-	if (!validateQueryRequest(query, callback))
-	{
-		return;
-	}
-
-	auto *storage = getStorageInstance();
-
-	// Convert to service params
-	sourcetrail::service::GraphQueryParams params;
-	params.symbolFullNames = query.symbolFullNames;
-	params.maxDepth = query.maxDepth;
-	params.nodeTypes = query.nodeTypes;
-	params.edgeTypes = query.edgeTypes;
-
-	// Use service layer
-	std::wstring plantUML = sourcetrail::service::generateSymbolGraph(params, storage);
-
-	message_response(to_string(plantUML), callback);
-}
-
 NodeKindMask fromNodeKindStrings(const std::vector<std::string>& nodeKinds)
 {
 	NodeKindMask mask = 0;
@@ -293,24 +243,106 @@ Edge::TypeMask fromEdgeTypeStrings(const std::vector<std::string>& edgeTypes)
 	return mask;
 }
 
-void Symbols::customGraphQuery(const SymbolQueryRequest&& query, std::function<void(const drogon::HttpResponsePtr&)>&& callback) const
-{
-	if (!validateQueryRequest(query, callback))
-	{
-		return;
+} // anonymous namespace
+
+// Public service functions
+
+Json::Value fuzzySearchSymbols(const FuzzySearchParams& params, StorageAccess* storage) {
+	auto matches = storage->getAutocompletionMatches(
+		params.query,
+		NodeTypeSet::all(),
+		false  // acceptCommands
+	);
+
+	Json::Value result(Json::arrayValue);
+	int count = 0;
+	for (const auto& entry : matches) {
+		for (const auto& tokenName : entry.tokenNames) {
+			Json::Value item;
+			item["fullName"] = to_string(tokenName.getQualifiedName());
+			item["serializedName"] = to_string(NameHierarchy::serialize(tokenName));
+			result.append(item);
+
+			if (++count >= params.maxResults) break;
+		}
+		if (count >= params.maxResults) break;
 	}
 
-	auto* storage = getStorageInstance();
-
-	// Convert to service params
-	sourcetrail::service::GraphQueryParams params;
-	params.symbolFullNames = query.symbolFullNames;
-	params.maxDepth = query.maxDepth;
-	params.nodeTypes = query.nodeTypes;
-	params.edgeTypes = query.edgeTypes;
-
-	// Use service layer
-	std::wstring graphOutput = sourcetrail::service::generateCustomGraph(params, storage);
-
-	message_response(to_string(graphOutput), callback);
+	return result;
 }
+
+std::wstring generateSymbolGraph(const GraphQueryParams& params, StorageAccess* storage) {
+	if (params.symbolFullNames.empty()) {
+		return L"Error: No symbolFullNames provided";
+	}
+
+	std::vector<Id> symbolIds;
+	symbolNameToIds(params.symbolFullNames, symbolIds, storage);
+	if (symbolIds.empty()) {
+		return L"Error: No valid Symbol Names found";
+	}
+
+	std::vector<Id> expandedNodeIds;
+	bool isNameSpace = false;
+	auto graph = storage->getGraphForActiveTokenIds(symbolIds, expandedNodeIds, &isNameSpace);
+
+	auto coreNode = graph->getNodeById(symbolIds[0]);
+	std::wstringstream wss;
+
+	switch (coreNode->getType().getKind())
+	{
+	case NODE_CLASS:
+	case NODE_STRUCT:
+		printGraphAsClass(*graph, wss, *coreNode);
+		break;
+	case NODE_FUNCTION:
+	case NODE_METHOD:
+		printGraphAsFunction(*graph, wss, *coreNode);
+		break;
+	case NODE_GLOBAL_VARIABLE:
+	case NODE_FIELD:
+		printGraphAsField(*graph, wss, *coreNode);
+		break;
+	case NODE_FILE:
+		printGraphAsFile(*graph, wss, *coreNode);
+		break;
+	default:
+		graph->print(wss);
+		break;
+	}
+
+	return wss.str();
+}
+
+std::wstring generateCustomGraph(const GraphQueryParams& params, StorageAccess* storage) {
+	if (params.symbolFullNames.empty()) {
+		return L"Error: No symbolFullNames provided";
+	}
+
+	std::vector<Id> symbolIds;
+	symbolNameToIds(params.symbolFullNames, symbolIds, storage);
+	if (symbolIds.size() != 2) {
+		return L"Error: Two Symbol Names needed";
+	}
+
+	auto graph = storage->getGraphForTrail(
+		symbolIds[0],
+		symbolIds[1],
+		fromNodeKindStrings(params.nodeTypes),
+		fromEdgeTypeStrings(params.edgeTypes),
+		true,
+		params.maxDepth,
+		true
+	);
+
+	std::wstringstream wss;
+	if (graph) {
+		graph->print(wss);
+	} else {
+		wss << L"Error: Failed to generate graph";
+	}
+
+	return wss.str();
+}
+
+}} // namespace
