@@ -3310,7 +3310,7 @@ void PersistentStorage::addInheritanceChainsToGraph(const std::vector<Id>& activ
 
 FilePath PersistentStorage::getCacheFilePath(const char* cacheFileName) const
 {
-	static const FilePath dbPath = getIndexDbFilePath().getParentDirectory();
+	const FilePath dbPath = getIndexDbFilePath().getParentDirectory();
 	return dbPath.getConcatenated(FilePath(cacheFileName));
 }
 
