@@ -365,8 +365,8 @@ private:
 	flashmapper::Mapper m_filePathMapCacheMapper;
 
 	const char* FILE_PATH_MAP_CACHE_FILE = "filepathcache.idx";
-	const char* SYMBOL_INDEX_CACHE_FILE = "symbol.idx";
-	const char* FILE_INDEX_CACHE_FILE = "file.idx";
+	const char* SYMBOL_INDEX_CACHE_FILE = "symbols.idx";
+	const char* FILE_INDEX_CACHE_FILE = "files.idx";
 	const char* HIERARCHY_INDEX_CACHE_FILE = "hierarchy.idx";
 };
 

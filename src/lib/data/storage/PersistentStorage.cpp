@@ -3318,7 +3318,7 @@ void PersistentStorage::buildFilePathMaps()
 {
 	TRACE("PersistentStorage buildFilePathMaps");
 
-	const FilePath filePathCachePath = getCacheFilePath("filepathcache.idx");
+	const FilePath filePathCachePath = getCacheFilePath(FILE_PATH_MAP_CACHE_FILE);
 
 
 	if (filePathCachePath.exists())
@@ -3359,8 +3359,8 @@ void PersistentStorage::buildSearchIndex()
 	TRACE("PersistentStorage buildSearchIndex");
 
 	const FilePath dbPath = getIndexDbFilePath();
-	const FilePath symbolIndexPath = getCacheFilePath("symbols.idx");
-	const FilePath fileIndexPath = getCacheFilePath("files.idx");
+	const FilePath symbolIndexPath = getCacheFilePath(SYMBOL_INDEX_CACHE_FILE);
+	const FilePath fileIndexPath = getCacheFilePath(FILE_INDEX_CACHE_FILE);
 
 	if (symbolIndexPath.exists())
 	{
@@ -3552,7 +3552,7 @@ void PersistentStorage::buildHierarchyCache()
 {
 	TRACE("PersistentStorage buildHierarchyCache");
 
-	const FilePath hierarchyCachePath = getCacheFilePath("hierarchy.idx");
+	const FilePath hierarchyCachePath = getCacheFilePath(HIERARCHY_INDEX_CACHE_FILE);
 	if (hierarchyCachePath.exists())
 	{
 		m_hierarchyCache.load(hierarchyCachePath.str(), m_hierarchyCacheMapper);
