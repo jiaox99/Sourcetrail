@@ -220,18 +220,21 @@ std::unique_ptr<CxxDeclName> CxxDeclNameResolver::getDeclName(const clang::Named
 			{
 				const clang::TemplateArgumentList* templateArgumentList =
 					functionDecl->getTemplateSpecializationArgs();
-				for (unsigned i = 0; i < templateArgumentList->size(); i++)
+				if (templateArgumentList)
 				{
-					const clang::TemplateArgument& templateArgument = templateArgumentList->get(i);
-					if (templateArgument.isDependent())
+					for (unsigned i = 0; i < templateArgumentList->size(); i++)
 					{
-						if (clang::FunctionTemplateDecl* templateFunctionDeclaration =
-								functionDecl->getPrimaryTemplate())
+						const clang::TemplateArgument& templateArgument = templateArgumentList->get(i);
+						if (templateArgument.isDependent())
 						{
-							return getDeclName(templateFunctionDeclaration);
+							if (clang::FunctionTemplateDecl* templateFunctionDeclaration =
+									functionDecl->getPrimaryTemplate())
+							{
+								return getDeclName(templateFunctionDeclaration);
+							}
 						}
+						templateArguments.push_back(getTemplateArgumentName(templateArgument));
 					}
-					templateArguments.push_back(getTemplateArgumentName(templateArgument));
 				}
 			}
 

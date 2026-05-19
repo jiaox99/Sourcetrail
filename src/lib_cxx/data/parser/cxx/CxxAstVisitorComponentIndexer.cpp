@@ -406,13 +406,16 @@ void CxxAstVisitorComponentIndexer::visitFunctionDecl(clang::FunctionDecl* d)
 			else
 			{
 				// record edge from foo<int>() to foo<T>()
-				Id templateId = getOrCreateSymbolId(d->getPrimaryTemplate()->getTemplatedDecl());
-				m_client->recordSymbolKind(templateId, SYMBOL_FUNCTION);
-				m_client->recordReference(
-					REFERENCE_TEMPLATE_SPECIALIZATION,
-					templateId,
-					symbolId,
-					getParseLocation(d->getLocation()));
+				if (clang::FunctionTemplateDecl* primaryTemplate = d->getPrimaryTemplate())
+				{
+					Id templateId = getOrCreateSymbolId(primaryTemplate->getTemplatedDecl());
+					m_client->recordSymbolKind(templateId, SYMBOL_FUNCTION);
+					m_client->recordReference(
+						REFERENCE_TEMPLATE_SPECIALIZATION,
+						templateId,
+						symbolId,
+						getParseLocation(d->getLocation()));
+				}
 			}
 		}
 	}
