@@ -19,6 +19,10 @@ CxxTypeNameResolver::CxxTypeNameResolver(const CxxNameResolver* other): CxxNameR
 
 std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::QualType& qualType)
 {
+	if (qualType.isNull())
+	{
+		return nullptr;
+	}
 	std::unique_ptr<CxxTypeName> typeName = getName(qualType.getTypePtr());
 	if (typeName && qualType.isConstQualified())
 	{
