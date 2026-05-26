@@ -1,0 +1,128 @@
+[
+	{
+		"type" : "quotation",
+		"patterns" : [ "\"(?:[^\"]|\\\\.)*\"", "@\"(?:[^\"]|\"\")*\"", "\'[^\']\'" ],
+		"priority" : true
+	},
+	{
+		"type" : "comment",
+		"range" : {
+			"start" : "/\\*",
+			"end" : "\\*/"
+		},
+		"priority" : true
+	},
+	{
+		"type" : "keyword",
+		"patterns" : [
+			"\\babstract\\b",
+			"\\bas\\b",
+			"\\base\\b",
+			"\\bbreak\\b",
+			"\\bcase\\b",
+			"\\bcatch\\b",
+			"\\bchecked\\b",
+			"\\bcontinue\\b",
+			"\\bdefault\\b",
+			"\\bdelegate\\b",
+			"\\bdo\\b",
+			"\\belse\\b",
+			"\\bevent\\b",
+			"\\bexplicit\\b",
+			"\\bextern\\b",
+			"\\bfalse\\b",
+			"\\bfinally\\b",
+			"\\bfixed\\b",
+			"\\bfor\\b",
+			"\\bforeach\\b",
+			"\\bgoto\\b",
+			"\\bif\\b",
+			"\\bimplicit\\b",
+			"\\bin\\b",
+			"\\binterface\\b",
+			"\\binternal\\b",
+			"\\bis\\b",
+			"\\block\\b",
+			"\\bnamespace\\b",
+			"\\bnew\\b",
+			"\\bnull\\b",
+			"\\boperator\\b",
+			"\\bout\\b",
+			"\\boverride\\b",
+			"\\bparams\\b",
+			"\\bprivate\\b",
+			"\\bprotected\\b",
+			"\\bpublic\\b",
+			"\\breadonly\\b",
+			"\\bref\\b",
+			"\\breturn\\b",
+			"\\bsealed\\b",
+			"\\bsizeof\\b",
+			"\\bstackalloc\\b",
+			"\\bstatic\\b",
+			"\\bswitch\\b",
+			"\\bthis\\b",
+			"\\bthrow\\b",
+			"\\btrue\\b",
+			"\\btry\\b",
+			"\\btypeof\\b",
+			"\\bunchecked\\b",
+			"\\bunsafe\\b",
+			"\\busing\\b",
+			"\\bvirtual\\b",
+			"\\bvolatile\\b",
+			"\\bwhile\\b",
+			"\\basync\\b",
+			"\\bawait\\b",
+			"\\bdynamic\\b",
+			"\\bget\\b",
+			"\\bglobal\\b",
+			"\\bpartial\\b",
+			"\\bset\\b",
+			"\\bvalue\\b",
+			"\\bvar\\b",
+			"\\bwhere\\b",
+			"\\byield\\b"
+		]
+	},
+	{
+		"type" : "type",
+		"patterns" : [
+			"\\bbool\\b",
+			"\\bbyte\\b",
+			"\\bchar\\b",
+			"\\bclass\\b",
+			"\\bdecimal\\b",
+			"\\bdouble\\b",
+			"\\benum\\b",
+			"\\bfloat\\b",
+			"\\bint\\b",
+			"\\blong\\b",
+			"\\bobject\\b",
+			"\\bsbyte\\b",
+			"\\bshort\\b",
+			"\\bstring\\b",
+			"\\bstruct\\b",
+			"\\buint\\b",
+			"\\bulong\\b",
+			"\\bushort\\b",
+			"\\bvoid\\b"
+		]
+	},
+	{
+		"type" : "directive",
+		"patterns" : [ "#[A-Za-z]+" ]
+	},
+	{
+		"type" : "number",
+		"patterns" : [ "\\b[0-9]+\\.?[0-9]*[fFdDmMlLuU]*\\b" ]
+	},
+	{
+		"type" : "function",
+		"patterns" : [ "\\b[A-Za-z0-9_]+(?=\\()" ]
+	},
+	{
+		"type" : "comment",
+		"patterns" : [ "///[^\n]*", "//[^\n]*" ]
+	}
+]
