@@ -4215,6 +4215,37 @@ TEST_CASE("cxx parser finds location of block comment")
 	REQUIRE(utility::containsElement<std::wstring>(client->comments, L"comment <1:1 2:17>"));
 }
 
+TEST_CASE("cxx parser sees builtin macro __clang__ by default", "[undefmacro]")
+{
+	std::shared_ptr<TestStorage> client = parseCode(
+		"#ifdef __clang__\n"
+		"int clang_is_defined;\n"
+		"#else\n"
+		"int clang_is_not_defined;\n"
+		"#endif\n");
+
+	REQUIRE(utility::containsElement<std::wstring>(
+		client->globalVariables, L"int clang_is_defined <2:5 2:20>"));
+	REQUIRE_FALSE(utility::containsElement<std::wstring>(
+		client->globalVariables, L"int clang_is_not_defined <4:5 4:24>"));
+}
+
+TEST_CASE("cxx parser can undefine builtin macro __clang__ via -U compiler flag", "[undefmacro]")
+{
+	std::shared_ptr<TestStorage> client = parseCode(
+		"#ifdef __clang__\n"
+		"int clang_is_defined;\n"
+		"#else\n"
+		"int clang_is_not_defined;\n"
+		"#endif\n",
+		{L"-U__clang__"});
+
+	REQUIRE(utility::containsElement<std::wstring>(
+		client->globalVariables, L"int clang_is_not_defined <4:5 4:24>"));
+	REQUIRE_FALSE(utility::containsElement<std::wstring>(
+		client->globalVariables, L"int clang_is_defined <2:5 2:20>"));
+}
+
 void _test_TEST()
 {
 	std::shared_ptr<TestStorage> client = parseCode(
