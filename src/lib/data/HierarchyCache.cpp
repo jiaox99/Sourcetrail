@@ -206,8 +206,8 @@ void HierarchyCache::getReverseReachableInheritanceSubgraphHelper(
 		size_t base = m_bases[i];
 		HierarchyNode* baseNode = m_nodes.getByIndex(base);
 		auto emplacedBase = reverseGraph.try_emplace(baseNode->getNodeId());
-		const Id nodeId = baseNode->getNodeId();
-		const Id edgeId = (*baseNode->getBaseEdgeIds())[i];
+		const Id nodeId = sourceNode->getNodeId();
+		const Id edgeId = (*sourceNode->getBaseEdgeIds())[i];
 		emplacedBase.first->second.push_back({nodeId, edgeId});
 		if (emplacedBase.second)
 		{

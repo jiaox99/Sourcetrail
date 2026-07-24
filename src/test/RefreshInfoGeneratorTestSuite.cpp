@@ -107,6 +107,16 @@ void cleanup()
 	FileSystem::remove(m_indexDbPath);
 	FileSystem::remove(m_bookmarkDbPath);
 
+	// PersistentStorage caches (filepathcache.idx, symbols.idx, files.idx, hierarchy.idx) are
+	// keyed by directory, not by db content, and are reused across TEST_CASEs unless removed
+	// here, which would leak state from a previous test's database into the next one.
+	const FilePath cacheDir = m_indexDbPath.getParentDirectory();
+	for (const wchar_t* cacheFileName:
+		{L"filepathcache.idx", L"symbols.idx", L"files.idx", L"hierarchy.idx"})
+	{
+		FileSystem::remove(cacheDir.getConcatenated(FilePath(cacheFileName)));
+	}
+
 	if (m_sourceFolder.recheckExists())
 	{
 		for (const FilePath& path: FileSystem::getFilePathsFromDirectory(m_sourceFolder))
