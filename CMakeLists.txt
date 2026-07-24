@@ -627,9 +627,11 @@ target_include_directories(${LIB_GUI_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_INCLUDE_PATHS}"
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
-# Add local LLVM includes BEFORE vcpkg headers to ensure correct abi-breaking.h is used.
+# Add local LLVM/Clang includes BEFORE vcpkg headers to ensure correct abi-breaking.h
+# and clang/Basic/DiagnosticOptions.h are used (vcpkg may still have a leftover LLVM 18
+# install whose headers would otherwise take precedence and mismatch our LLVM 22 libs).
 if (BUILD_CXX_LANGUAGE_PACKAGE)
-	target_include_directories(${LIB_GUI_PROJECT_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS})
+	target_include_directories(${LIB_GUI_PROJECT_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
 endif()
 
 # configure platform specific include file
@@ -723,6 +725,14 @@ set_property(
 		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_INCLUDE_PATHS}>
 		$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_INCLUDE_PATHS}>
 )
+
+# See comment near the Sourcetrail_test target: set_property(...PROPERTY
+# INCLUDE_DIRECTORIES...) above fully overwrites this target's include path,
+# so re-assert local LLVM/Clang headers ahead of any leftover LLVM/Clang
+# install inside the vcpkg tree via a subsequent BEFORE append.
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	target_include_directories(${APP_INDEXER_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
+endif()
 
 
 # App --------------------------------------------------------------------------
@@ -821,6 +831,12 @@ target_include_directories(${APP_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_INCLUDE_PATHS}"
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
+
+# See comment near the Sourcetrail_test target: re-assert local LLVM/Clang
+# headers ahead of any leftover LLVM/Clang install inside the vcpkg tree.
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	target_include_directories(${APP_PROJECT_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
+endif()
 
 # Use the Widgets module from Qt 5.
 qt5_use_modules(${APP_PROJECT_NAME} Widgets)
@@ -928,6 +944,16 @@ set_property(
 		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_INCLUDE_PATHS}>
 		$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_INCLUDE_PATHS}>
 )
+
+# set_property(...PROPERTY INCLUDE_DIRECTORIES...) above fully overwrites this
+# target's include path (it does not APPEND), so the Boost/vcpkg entry it just
+# set can end up ahead of LLVM/Clang. target_include_directories(BEFORE ...)
+# below appends via the normal property API and is therefore not clobbered;
+# it re-establishes local LLVM/Clang headers as authoritative over any leftover
+# LLVM/Clang install inside the vcpkg tree (see comment near find_package(Clang)).
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	target_include_directories(${TEST_PROJECT_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
+endif()
 
 if (WIN32)
 	set_target_properties(${TEST_PROJECT_NAME} PROPERTIES COMPILE_FLAGS "/bigobj")
