@@ -3423,7 +3423,7 @@ TEST_CASE("record base class of implicit template class specialization")
 		"Vec2f v; \n");
 
 	REQUIRE(utility::containsElement<std::wstring>(
-		client->inheritances, L"Vector2<float> -> VectorBase<float, 2> <5:24 5:33>"));
+		client->inheritances, L"Vector2<float> -> VectorBase<float, 2U> <5:24 5:33>"));
 }
 
 TEST_CASE("cxx parser finds template class specialization with template argument")

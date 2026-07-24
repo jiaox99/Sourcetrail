@@ -2,7 +2,6 @@
 
 #include <clang/AST/ASTContext.h>
 #include <clang/Basic/FileManager.h>
-#include "utilityClang.h"
 #include "utilityString.h"
 
 CanonicalFilePathCache::CanonicalFilePathCache(std::shared_ptr<FileRegister> fileRegister)
@@ -31,19 +30,19 @@ FilePath CanonicalFilePathCache::getCanonicalFilePath(
 
 	FilePath filePath;
 
-	const clang::FileEntry* fileEntry = sourceManager.getFileEntryForID(fileId);
-	if (fileEntry != nullptr)
+	clang::OptionalFileEntryRef fileEntry = sourceManager.getFileEntryRefForID(fileId);
+	if (fileEntry.has_value())
 	{
-		filePath = getCanonicalFilePath(fileEntry);
+		filePath = getCanonicalFilePath(*fileEntry);
 		m_fileIdMap.emplace(fileId, filePath);
 	}
 
 	return filePath;
 }
 
-FilePath CanonicalFilePathCache::getCanonicalFilePath(const clang::FileEntry* entry)
+FilePath CanonicalFilePathCache::getCanonicalFilePath(clang::FileEntryRef entry)
 {
-	return getCanonicalFilePath(utility::getFileNameOfFileEntry(entry));
+	return getCanonicalFilePath(utility::decodeFromUtf8(entry.getName().str()));
 }
 
 FilePath CanonicalFilePathCache::getCanonicalFilePath(const std::wstring& path)
@@ -103,9 +102,9 @@ Id CanonicalFilePathCache::getFileSymbolId(const clang::FileID& fileId)
 	return 0;
 }
 
-Id CanonicalFilePathCache::getFileSymbolId(const clang::FileEntry* entry)
+Id CanonicalFilePathCache::getFileSymbolId(clang::FileEntryRef entry)
 {
-	return getFileSymbolId(utility::getFileNameOfFileEntry(entry));
+	return getFileSymbolId(utility::decodeFromUtf8(entry.getName().str()));
 }
 
 Id CanonicalFilePathCache::getFileSymbolId(const std::wstring& path)
@@ -125,8 +124,7 @@ FilePath CanonicalFilePathCache::getDeclarationFilePath(const clang::Decl* decla
 {
 	const clang::SourceManager& sourceManager = declaration->getASTContext().getSourceManager();
 	const clang::FileID fileId = sourceManager.getFileID(declaration->getBeginLoc());
-	const clang::FileEntry* fileEntry = sourceManager.getFileEntryForID(fileId);
-	if (fileEntry != nullptr)
+	if (sourceManager.getFileEntryRefForID(fileId).has_value())
 	{
 		return getCanonicalFilePath(fileId, sourceManager);
 	}

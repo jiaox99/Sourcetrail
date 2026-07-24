@@ -453,6 +453,18 @@ bool CxxAstVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplate
 		}
 	}
 
+	if (ReturnValue && D->hasDefinition())
+	{
+		for (const auto& base: D->bases())
+		{
+			if (!traverseCXXBaseSpecifier(base))
+			{
+				ReturnValue = false;
+				break;
+			}
+		}
+	}
+
 	if (ReturnValue && ShouldVisitChildren)
 	{
 		traverseDeclContextHelper(clang::dyn_cast<clang::DeclContext>(D));

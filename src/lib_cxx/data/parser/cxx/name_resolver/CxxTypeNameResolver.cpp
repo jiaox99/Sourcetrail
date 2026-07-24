@@ -3,6 +3,7 @@
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/DeclTemplate.h>
 #include <clang/AST/PrettyPrinter.h>
+#include <clang/AST/TemplateName.h>
 
 #include "CxxDeclNameResolver.h"
 #include "CxxSpecifierNameResolver.h"
@@ -155,21 +156,50 @@ std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::Type* typ
 						declName->getParent());
 				}
 			}
-			else	// specialization of a template template parameter (no concrete class)
-					// important, may help: has no underlying decl!
+			else
 			{
 				const clang::TemplateSpecializationType* templateSpecializationType =
 					type->getAs<clang::TemplateSpecializationType>();
+				const clang::TemplateName templateName =
+					templateSpecializationType->getTemplateName();
+
+				// e.g. "A<U>::template type<float>": the template name ("type") is a member of
+				// a dependent qualifier ("A<U>") rather than a template template parameter, so
+				// there is no TemplateDecl to resolve it to (getAsTemplateDecl() is null). Build
+				// the name from the qualifier and identifier directly, like the DependentName
+				// case above.
+				if (const clang::DependentTemplateName* dependentTemplateName =
+						templateName.getAsDependentTemplateName())
+				{
+					std::unique_ptr<CxxName> specifierName = CxxSpecifierNameResolver(this).getName(
+						dependentTemplateName->getQualifier());
+
+					std::vector<std::wstring> templateArguments;
+					CxxTemplateArgumentNameResolver resolver(this);
+					auto arguments = templateSpecializationType->template_arguments();
+					for (unsigned i = 0; i < arguments.size(); i++)
+					{
+						templateArguments.push_back(resolver.getTemplateArgumentName(arguments[i]));
+					}
+
+					return std::make_unique<CxxTypeName>(
+						utility::decodeFromUtf8(
+							dependentTemplateName->getName().getIdentifier()->getName().str()),
+						std::move(templateArguments),
+						std::move(specifierName));
+				}
+
+				// specialization of a template template parameter (no concrete class)
+				// important, may help: has no underlying decl!
 				const std::unique_ptr<CxxDeclName> declName = CxxDeclNameResolver(this).getName(
-					templateSpecializationType->getTemplateName().getAsTemplateDecl());
+					templateName.getAsTemplateDecl());
 
 				if (declName)
 				{
 					std::vector<std::wstring> templateArguments;
 					CxxTemplateArgumentNameResolver resolver(this);
-					resolver.ignoreContextDecl(templateSpecializationType->getTemplateName()
-												   .getAsTemplateDecl()
-												   ->getTemplatedDecl());
+					resolver.ignoreContextDecl(
+						templateName.getAsTemplateDecl()->getTemplatedDecl());
 					auto arguments = templateSpecializationType->template_arguments();
 					for (unsigned i = 0; i < arguments.size(); i++)
 					{

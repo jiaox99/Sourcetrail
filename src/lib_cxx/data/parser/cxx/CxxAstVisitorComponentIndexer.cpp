@@ -80,10 +80,20 @@ void CxxAstVisitorComponentIndexer::beginTraverseNestedNameSpecifierLoc(
 
 			if (symbolKind != SYMBOL_KIND_MAX)
 			{
+				// TagTypeLoc::getLocalSourceRange() falls back to the qualifier's begin
+				// location (e.g. "Foo::" in "Foo::Bar") when there is no elaborated
+				// keyword, so loc.getLocalBeginLoc() would point at the wrong segment.
+				// getNameLoc() always refers to this segment's own name ("Bar").
+				clang::SourceLocation nameLoc = loc.getLocalBeginLoc();
+				if (clang::TagTypeLoc tagTypeLoc = loc.castAsTypeLoc().getAs<clang::TagTypeLoc>())
+				{
+					nameLoc = tagTypeLoc.getNameLoc();
+				}
+
 				const Id symbolId = getOrCreateSymbolId(recordDecl);
 				m_client->recordSymbolKind(symbolId, symbolKind);
 				m_client->recordLocation(
-					symbolId, getParseLocation(loc.getLocalBeginLoc()), ParseLocationType::QUALIFIER);
+					symbolId, getParseLocation(nameLoc), ParseLocationType::QUALIFIER);
 			}
 		}
 		else if (const clang::Type* type = loc.getNestedNameSpecifier().getAsType())
@@ -638,16 +648,18 @@ void CxxAstVisitorComponentIndexer::visitTypeLoc(clang::TypeLoc tl)
 				if (tst)
 				{
 					const clang::TemplateName tln = tst->getTemplateName();
-					if (tln.isDependent())	  // e.g. T<int> where the template name T depends on a
-											  // template parameter
+					// e.g. T<int> where the template name T is itself a template template
+					// parameter. Don't do this for a name like A<U>::template type<float>,
+					// where the template name (type) is dependent because its qualifier (A<U>)
+					// is dependent, but "type" itself is not a template parameter: that should
+					// still be recorded as a normal type usage below.
+					if (tln.isDependent() &&
+						clang::isa_and_nonnull<clang::TemplateTemplateParmDecl>(
+							tln.getAsTemplateDecl()))
 					{
 						clang::TemplateDecl* decl = tln.getAsTemplateDecl();
-						if (decl)
-						{
-							m_client->recordLocalSymbol(
-								getLocalSymbolName(decl->getLocation()),
-								getParseLocation(tl.getBeginLoc()));
-						}
+						m_client->recordLocalSymbol(
+							getLocalSymbolName(decl->getLocation()), getParseLocation(tl.getBeginLoc()));
 						return;
 					}
 				}
@@ -661,11 +673,30 @@ void CxxAstVisitorComponentIndexer::visitTypeLoc(clang::TypeLoc tl)
 				m_client->recordDefinitionKind(symbolId, DEFINITION_EXPLICIT);
 			}
 
+			// TagTypeLoc/TypedefTypeLoc/UnresolvedUsingTypeLoc/UsingTypeLoc::getBeginLoc() falls
+			// back to the qualifier's begin location (e.g. "A<int>::" in "A<int>::type") when
+			// there is no elaborated keyword, so it would point at the wrong segment.
+			// getNameLoc() always refers to this segment's own name ("type").
 			clang::SourceLocation loc;
 			if (!tl.getAs<clang::DependentNameTypeLoc>().isNull())
 			{
-				const clang::DependentNameTypeLoc& dntl = tl.castAs<clang::DependentNameTypeLoc>();
-				loc = dntl.getNameLoc();
+				loc = tl.castAs<clang::DependentNameTypeLoc>().getNameLoc();
+			}
+			else if (!tl.getAs<clang::TagTypeLoc>().isNull())
+			{
+				loc = tl.castAs<clang::TagTypeLoc>().getNameLoc();
+			}
+			else if (!tl.getAs<clang::TypedefTypeLoc>().isNull())
+			{
+				loc = tl.castAs<clang::TypedefTypeLoc>().getNameLoc();
+			}
+			else if (!tl.getAs<clang::UnresolvedUsingTypeLoc>().isNull())
+			{
+				loc = tl.castAs<clang::UnresolvedUsingTypeLoc>().getNameLoc();
+			}
+			else if (!tl.getAs<clang::UsingTypeLoc>().isNull())
+			{
+				loc = tl.castAs<clang::UsingTypeLoc>().getNameLoc();
 			}
 			else
 			{

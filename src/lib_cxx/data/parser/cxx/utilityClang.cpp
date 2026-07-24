@@ -126,16 +126,6 @@ SymbolKind utility::getSymbolKind(const clang::VarDecl* d)
 	return symbolKind;
 }
 
-std::wstring utility::getFileNameOfFileEntry(const clang::FileEntry* entry)
-{
-	std::wstring fileName = L"";
-	if (entry != nullptr)
-	{
-		fileName = utility::decodeFromUtf8(entry->tryGetRealPathName().str());
-	}
-	return fileName;
-}
-
 ParseLocation utility::getParseLocation(
 	const clang::SourceLocation& sourceLocation,
 	const clang::SourceManager& sourceManager,
