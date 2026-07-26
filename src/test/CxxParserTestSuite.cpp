@@ -4199,6 +4199,28 @@ TEST_CASE("cxx parser catches error in macro expansion")
 		client->errors, L"'this_path_does_not_exist.txt' file not found <2:10 2:10>"));
 }
 
+TEST_CASE("cxx parser does not report error for narrowing case value")
+{
+	std::shared_ptr<TestStorage> client = parseCode(
+		"void foo(unsigned int x) {\n"
+		"	switch (x) {\n"
+		"	case -1:\n"
+		"		break;\n"
+		"	}\n"
+		"}\n");
+
+	REQUIRE(client->errors.empty());
+}
+
+TEST_CASE("cxx parser does not report error for narrowing template argument")
+{
+	std::shared_ptr<TestStorage> client = parseCode(
+		"template <int N> struct A {};\n"
+		"A<4294967295u> a;\n");
+
+	REQUIRE(client->errors.empty());
+}
+
 TEST_CASE("cxx parser finds location of line comment")
 {
 	std::shared_ptr<TestStorage> client = parseCode("// this is a line comment\n");
