@@ -236,9 +236,11 @@ std::vector<std::wstring> SourceGroupCxxCdb::getBaseCompilerFlags() const
 
 	utility::append(
 		compilerFlags,
-		IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths(utility::concat(
-			m_settings->getHeaderSearchPathsExpandedAndAbsolute(),
-			appSettings->getHeaderSearchPathsExpanded())));
+		IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths(
+			utility::concat(
+				m_settings->getHeaderSearchPathsExpandedAndAbsolute(),
+				appSettings->getHeaderSearchPathsExpanded()),
+			m_settings->getUseToolCxxHeaders()));
 
 	utility::append(
 		compilerFlags,

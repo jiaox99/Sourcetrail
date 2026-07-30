@@ -24,7 +24,7 @@ public:
 
 	static std::wstring getCompilerFlagLanguageStandard(const std::wstring& languageStandard);
 	static std::vector<std::wstring> getCompilerFlagsForSystemHeaderSearchPaths(
-		const std::vector<FilePath>& systemHeaderSearchPaths);
+		const std::vector<FilePath>& systemHeaderSearchPaths, bool addToolCxxHeaderPath = true);
 	static std::vector<std::wstring> getCompilerFlagsForFrameworkSearchPaths(
 		const std::vector<FilePath>& frameworkSearchPaths);
 

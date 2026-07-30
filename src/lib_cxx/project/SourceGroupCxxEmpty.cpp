@@ -235,11 +235,13 @@ std::vector<std::wstring> SourceGroupCxxEmpty::getBaseCompilerFlags() const
 
 		utility::append(
 			compilerFlags,
-			IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths(utility::concat(
-				indexedDirectoryPaths,
+			IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths(
 				utility::concat(
-					settingsCxx->getHeaderSearchPathsExpandedAndAbsolute(),
-					appSettings->getHeaderSearchPathsExpanded()))));
+					indexedDirectoryPaths,
+					utility::concat(
+						settingsCxx->getHeaderSearchPathsExpandedAndAbsolute(),
+						appSettings->getHeaderSearchPathsExpanded())),
+				settingsCxx->getUseToolCxxHeaders()));
 	}
 	{
 		utility::append(

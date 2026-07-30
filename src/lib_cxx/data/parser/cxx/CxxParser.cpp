@@ -99,6 +99,18 @@ std::vector<std::string> CxxParser::getCommandlineArgumentsEssential(
 	// -w. MSVC accepts this code without error, so downgrade it here to avoid spurious indexing errors.
 	args.push_back("-Wno-c++11-narrowing");
 
+	// Dynamic exception specifications (e.g. "void f() throw(MyException)") are a DefaultError
+	// diagnostic in clang under -std=c++17 and later and are not affected by -w. Older codebases
+	// indexed with a newer language standard than they were written for still use this removed
+	// C++98/03 syntax; MSVC accepts it without error, so downgrade it here to avoid spurious errors.
+	args.push_back("-Wno-dynamic-exception-spec");
+
+	// The 'register' storage class specifier is a DefaultError diagnostic in clang under
+	// -std=c++17 and later and is not affected by -w. Older codebases indexed with a newer
+	// language standard than they were written for still use this removed C++98/03 keyword;
+	// MSVC accepts it without error, so downgrade it here to avoid spurious indexing errors.
+	args.push_back("-Wno-register");
+
 	// This option tells clang just to continue parsing no matter how manny errors have been thrown.
 	args.push_back("-ferror-limit=0");
 
