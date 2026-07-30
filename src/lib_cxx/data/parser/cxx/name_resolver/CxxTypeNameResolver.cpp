@@ -249,8 +249,40 @@ std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::Type* typ
 				std::vector<std::wstring>(),
 				std::move(specifierName));
 		}
+		case clang::Type::Using:
+		{
+			// "using Base::SomeType;" resolves to a concrete target as soon as it is written,
+			// so the type name can be resolved through the shadowed declaration like a typedef.
+			std::unique_ptr<CxxDeclName> declName = CxxDeclNameResolver(this).getName(
+				type->getAs<clang::UsingType>()->getDecl()->getTargetDecl());
+			if (declName)
+			{
+				return std::make_unique<CxxTypeName>(
+					declName->getName(), std::vector<std::wstring>(), declName->getParent());
+			}
+			break;
+		}
+		case clang::Type::UnresolvedUsing:
+		{
+			// "using typename Base<T>::SomeType;" cannot be resolved to a concrete declaration
+			// until Base<T> is instantiated, so treat it like DependentName above.
+			const clang::UnresolvedUsingType* unresolvedUsingType =
+				clang::dyn_cast<clang::UnresolvedUsingType>(type);
+			std::unique_ptr<CxxName> specifierName = CxxSpecifierNameResolver(this).getName(
+				unresolvedUsingType->getQualifier());
+			return std::make_unique<CxxTypeName>(
+				utility::decodeFromUtf8(unresolvedUsingType->getDecl()->getName().str()),
+				std::vector<std::wstring>(),
+				std::move(specifierName));
+		}
 		// clang::Type::DependentTemplateSpecialization was removed in LLVM 22;
 		// DependentTemplateSpecializationType no longer exists.
+		case clang::Type::PredefinedSugar:
+		{
+			// size_t/ssize_t/ptrdiff_t are sugar for a builtin integer type (e.g. "unsigned
+			// long"); resolve through the desugared type like Typedef does.
+			return getName(type->getAs<clang::PredefinedSugarType>()->desugar());
+		}
 		case clang::Type::PackExpansion:
 		{
 			return getName(clang::dyn_cast<clang::PackExpansionType>(type)->getPattern());
