@@ -36,6 +36,7 @@ size_t SqliteIndexStorage::getStorageVersion()
 SqliteIndexStorage::SqliteIndexStorage(const FilePath& dbFilePath)
 	: SqliteStorage(dbFilePath.getCanonical())
 {
+	executeStatement("PRAGMA synchronous=OFF;");
 }
 
 size_t SqliteIndexStorage::getStaticVersion() const

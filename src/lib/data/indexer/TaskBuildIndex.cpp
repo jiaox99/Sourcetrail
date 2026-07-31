@@ -240,7 +240,7 @@ bool TaskBuildIndex::fetchIntermediateStorages(std::shared_ptr<Blackboard> black
 	int poppedStorageCount = 0;
 
 	int providerStorageCount = m_storageProvider->getStorageCount();
-	if (providerStorageCount > 10)
+	if (providerStorageCount > 20)
 	{
 		LOG_INFO_STREAM(<< "waiting, too many storages queued: " << providerStorageCount);
 
