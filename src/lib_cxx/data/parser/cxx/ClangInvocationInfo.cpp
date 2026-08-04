@@ -2,7 +2,7 @@
 
 #include <clang/Driver/Compilation.h>
 #include <clang/Driver/Driver.h>
-#include <clang/Driver/Options.h>
+#include <clang/Options/Options.h>
 #include <clang/Frontend/CompilerInvocation.h>
 #include <clang/Tooling/Tooling.h>
 #include <clang/Basic/Version.h>
@@ -51,18 +51,20 @@ ClangInvocationInfo ClangInvocationInfo::getClangInvocationString(
 		for (const std::string& Str: CommandLine)
 			Argv.push_back(Str.c_str());
 		const char* const BinaryName = Argv[0];
-		clang::IntrusiveRefCntPtr<clang::DiagnosticOptions> DiagOpts = new clang::DiagnosticOptions();
+		// In LLVM 17+, DiagnosticOptions is a plain class (not ref-counted).
+		// DiagnosticsEngine and TextDiagnosticPrinter take it by reference.
+		clang::DiagnosticOptions DiagOpts;
 		unsigned MissingArgIndex, MissingArgCount;
-		const llvm::opt::OptTable& Opts = clang::driver::getDriverOptTable();
+		const llvm::opt::OptTable& Opts = clang::getDriverOptTable();
 		llvm::opt::InputArgList ParsedArgs = Opts.ParseArgs(
 			clang::ArrayRef<const char*>(Argv).slice(1), MissingArgIndex, MissingArgCount);
-		clang::ParseDiagnosticArgs(*DiagOpts, ParsedArgs);
+		clang::ParseDiagnosticArgs(DiagOpts, ParsedArgs);
 
 		llvm::raw_string_ostream diagnosticsStream(invocationInfo.errors);
-		clang::TextDiagnosticPrinter DiagnosticPrinter(diagnosticsStream, &*DiagOpts);
+		clang::TextDiagnosticPrinter DiagnosticPrinter(diagnosticsStream, DiagOpts);
 		clang::DiagnosticsEngine Diagnostics(
 			clang::IntrusiveRefCntPtr<clang::DiagnosticIDs>(new clang::DiagnosticIDs()),
-			&*DiagOpts,
+			DiagOpts,
 			&DiagnosticPrinter,
 			false);
 
@@ -74,7 +76,7 @@ ClangInvocationInfo ClangInvocationInfo::getClangInvocationString(
 		// Since the input might only be virtual, don't check whether it exists.
 		Driver->setCheckInputsExist(false);
 		const std::unique_ptr<clang::driver::Compilation> Compilation(
-			Driver->BuildCompilation(llvm::makeArrayRef(Argv)));
+			Driver->BuildCompilation(llvm::ArrayRef(Argv)));
 
 		if (Compilation)
 		{

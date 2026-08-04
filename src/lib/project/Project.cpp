@@ -41,6 +41,7 @@
 #include "TaskReturnSuccessIf.h"
 #include "TaskSetValue.h"
 #include "TextAccess.h"
+#include "tracing.h"
 #include "utility.h"
 #include "utilityApp.h"
 #include "utilityFile.h"
@@ -764,7 +765,12 @@ void Project::buildIndex(RefreshInfo info, std::shared_ptr<DialogView> dialogVie
 							   }));
 			})),
 		std::make_shared<TaskGroupSequence>()->addChildTasks(std::make_shared<TaskLambda>([this]() {
-			Task::dispatch(TabId::app(), std::make_shared<TaskLambda>([this]() {}));
+			Task::dispatch(TabId::app(), std::make_shared<TaskLambda>([this]() {
+				if (!m_hasGUI)
+				{
+					PRINT_TRACES();
+				}
+				}));
 		}))));
 
 	taskSequential->setIsBackgroundTask(true);

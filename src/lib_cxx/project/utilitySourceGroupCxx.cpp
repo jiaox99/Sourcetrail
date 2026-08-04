@@ -89,10 +89,10 @@ std::shared_ptr<Task> createBuildPchTask(
 				compilationDatabase, {utility::encodeToUtf8(pchInputFilePath.wstr())});
 			GeneratePCHAction* action = new GeneratePCHAction(client, canonicalFilePathCache);
 
-			llvm::IntrusiveRefCntPtr<clang::DiagnosticOptions> options =
-				new clang::DiagnosticOptions();
+			// DiagnosticOptions is a plain class in LLVM 17+; must outlive the consumer.
+			clang::DiagnosticOptions diagOptions;
 			CxxDiagnosticConsumer diagnostics(
-				llvm::errs(), &*options, client, canonicalFilePathCache, pchInputFilePath, true);
+				llvm::errs(), diagOptions, client, canonicalFilePathCache, pchInputFilePath, true);
 
 			tool.setDiagnosticConsumer(&diagnostics);
 			tool.clearArgumentsAdjusters();

@@ -160,6 +160,12 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 			set (_CLANG_HEADERS_SEARCH_LIST
 				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/lib/clang/${LLVM_VERSION_MAJOR}/include"
 				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/lib64/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/Release/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/RelWithDebInfo/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/${LLVM_CONFIGURATION_TYPE}/Debug/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/Release/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/RelWithDebInfo/lib/clang/${LLVM_VERSION_MAJOR}/include"
+				"${LLVM_BINARY_DIR}/Debug/lib/clang/${LLVM_VERSION_MAJOR}/include"
 			)
 			foreach (_CLANG_HEADER_PATH ${_CLANG_HEADERS_SEARCH_LIST})
                 message(STATUS ${_CLANG_HEADER_PATH})
@@ -424,6 +430,12 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
 		"${EXTERNAL_C_INCLUDE_PATHS}"
 	)
 
+	# For multi-config LLVM builds (Visual Studio), libs are under <build>/<config>/lib/.
+	# Override LLVM_LIBRARY_DIRS to point to the Release lib dir to avoid Debug ABI mismatch.
+	if(IS_DIRECTORY "${LLVM_BINARY_DIR}/Release/lib")
+		set(LLVM_LIBRARY_DIRS "${LLVM_BINARY_DIR}/Release/lib")
+		set(CLANG_LIBRARY_DIRS "${LLVM_BINARY_DIR}/Release/lib")
+	endif()
 	link_directories(${LLVM_LIBRARY_DIRS} ${CLANG_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
 
     if(LLVM_LINK_LLVM_DYLIB)
@@ -452,6 +464,7 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
             clangFrontend
             clangSerialization
             clangDriver
+            clangOptions
             clangTooling
             clangParse
             clangSema
@@ -468,6 +481,7 @@ if (BUILD_CXX_LANGUAGE_PACKAGE)
     endif()
 
 	target_link_libraries(${LIB_CXX_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${CLANG_LIBRARIES} ${REQ_LLVM_LIBS})
+
 
 	if (WIN32)
 		target_compile_definitions(${LIB_CXX_PROJECT_NAME} PRIVATE _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # Due to Clang
@@ -613,6 +627,12 @@ target_include_directories(${LIB_GUI_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_INCLUDE_PATHS}"
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
+# Add local LLVM/Clang includes BEFORE vcpkg headers to ensure correct abi-breaking.h
+# and clang/Basic/DiagnosticOptions.h are used (vcpkg may still have a leftover LLVM 18
+# install whose headers would otherwise take precedence and mismatch our LLVM 22 libs).
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	target_include_directories(${LIB_GUI_PROJECT_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
+endif()
 
 # configure platform specific include file
 configure_file(
@@ -705,6 +725,14 @@ set_property(
 		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_INCLUDE_PATHS}>
 		$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_INCLUDE_PATHS}>
 )
+
+# See comment near the Sourcetrail_test target: set_property(...PROPERTY
+# INCLUDE_DIRECTORIES...) above fully overwrites this target's include path,
+# so re-assert local LLVM/Clang headers ahead of any leftover LLVM/Clang
+# install inside the vcpkg tree via a subsequent BEFORE append.
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	target_include_directories(${APP_INDEXER_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
+endif()
 
 
 # App --------------------------------------------------------------------------
@@ -803,6 +831,12 @@ target_include_directories(${APP_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_INCLUDE_PATHS}"
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
+
+# See comment near the Sourcetrail_test target: re-assert local LLVM/Clang
+# headers ahead of any leftover LLVM/Clang install inside the vcpkg tree.
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	target_include_directories(${APP_PROJECT_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
+endif()
 
 # Use the Widgets module from Qt 5.
 qt5_use_modules(${APP_PROJECT_NAME} Widgets)
@@ -910,6 +944,16 @@ set_property(
 		$<$<BOOL:${BUILD_JAVA_LANGUAGE_PACKAGE}>:${LIB_JAVA_INCLUDE_PATHS}>
 		$<$<BOOL:${BUILD_PYTHON_LANGUAGE_PACKAGE}>:${LIB_PYTHON_INCLUDE_PATHS}>
 )
+
+# set_property(...PROPERTY INCLUDE_DIRECTORIES...) above fully overwrites this
+# target's include path (it does not APPEND), so the Boost/vcpkg entry it just
+# set can end up ahead of LLVM/Clang. target_include_directories(BEFORE ...)
+# below appends via the normal property API and is therefore not clobbered;
+# it re-establishes local LLVM/Clang headers as authoritative over any leftover
+# LLVM/Clang install inside the vcpkg tree (see comment near find_package(Clang)).
+if (BUILD_CXX_LANGUAGE_PACKAGE)
+	target_include_directories(${TEST_PROJECT_NAME} BEFORE PUBLIC ${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
+endif()
 
 if (WIN32)
 	set_target_properties(${TEST_PROJECT_NAME} PROPERTIES COMPILE_FLAGS "/bigobj")

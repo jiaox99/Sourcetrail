@@ -3,6 +3,7 @@
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/DeclTemplate.h>
 #include <clang/AST/PrettyPrinter.h>
+#include <clang/AST/TemplateName.h>
 
 #include "CxxDeclNameResolver.h"
 #include "CxxSpecifierNameResolver.h"
@@ -19,6 +20,10 @@ CxxTypeNameResolver::CxxTypeNameResolver(const CxxNameResolver* other): CxxNameR
 
 std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::QualType& qualType)
 {
+	if (qualType.isNull())
+	{
+		return nullptr;
+	}
 	std::unique_ptr<CxxTypeName> typeName = getName(qualType.getTypePtr());
 	if (typeName && qualType.isConstQualified())
 	{
@@ -43,8 +48,17 @@ std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::Type* typ
 		}
 		case clang::Type::InjectedClassName:
 		{
-			return getName(
-				type->getAs<clang::InjectedClassNameType>()->getInjectedSpecializationType());
+			// In LLVM 22, InjectedClassNameType is a TagType; resolve via its decl.
+			std::unique_ptr<CxxDeclName> declName = CxxDeclNameResolver(this).getName(
+				type->getAs<clang::InjectedClassNameType>()->getDecl());
+			if (declName)
+			{
+				return std::make_unique<CxxTypeName>(
+					declName->getName(),
+					declName->getTemplateParameterNames(),
+					declName->getParent());
+			}
+			break;
 		}
 		case clang::Type::Typedef:
 		{
@@ -98,10 +112,7 @@ std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::Type* typ
 			}
 			return typeName;
 		}
-		case clang::Type::Elaborated:
-		{
-			return getName(clang::dyn_cast<clang::ElaboratedType>(type)->getNamedType());
-		}
+		// clang::Type::Elaborated was removed in LLVM 17+; ElaboratedType no longer exists.
 		case clang::Type::Enum:
 		case clang::Type::Record:
 		{
@@ -145,21 +156,50 @@ std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::Type* typ
 						declName->getParent());
 				}
 			}
-			else	// specialization of a template template parameter (no concrete class)
-					// important, may help: has no underlying decl!
+			else
 			{
 				const clang::TemplateSpecializationType* templateSpecializationType =
 					type->getAs<clang::TemplateSpecializationType>();
+				const clang::TemplateName templateName =
+					templateSpecializationType->getTemplateName();
+
+				// e.g. "A<U>::template type<float>": the template name ("type") is a member of
+				// a dependent qualifier ("A<U>") rather than a template template parameter, so
+				// there is no TemplateDecl to resolve it to (getAsTemplateDecl() is null). Build
+				// the name from the qualifier and identifier directly, like the DependentName
+				// case above.
+				if (const clang::DependentTemplateName* dependentTemplateName =
+						templateName.getAsDependentTemplateName())
+				{
+					std::unique_ptr<CxxName> specifierName = CxxSpecifierNameResolver(this).getName(
+						dependentTemplateName->getQualifier());
+
+					std::vector<std::wstring> templateArguments;
+					CxxTemplateArgumentNameResolver resolver(this);
+					auto arguments = templateSpecializationType->template_arguments();
+					for (unsigned i = 0; i < arguments.size(); i++)
+					{
+						templateArguments.push_back(resolver.getTemplateArgumentName(arguments[i]));
+					}
+
+					return std::make_unique<CxxTypeName>(
+						utility::decodeFromUtf8(
+							dependentTemplateName->getName().getIdentifier()->getName().str()),
+						std::move(templateArguments),
+						std::move(specifierName));
+				}
+
+				// specialization of a template template parameter (no concrete class)
+				// important, may help: has no underlying decl!
 				const std::unique_ptr<CxxDeclName> declName = CxxDeclNameResolver(this).getName(
-					templateSpecializationType->getTemplateName().getAsTemplateDecl());
+					templateName.getAsTemplateDecl());
 
 				if (declName)
 				{
 					std::vector<std::wstring> templateArguments;
 					CxxTemplateArgumentNameResolver resolver(this);
-					resolver.ignoreContextDecl(templateSpecializationType->getTemplateName()
-												   .getAsTemplateDecl()
-												   ->getTemplatedDecl());
+					resolver.ignoreContextDecl(
+						templateName.getAsTemplateDecl()->getTemplatedDecl());
 					auto arguments = templateSpecializationType->template_arguments();
 					for (unsigned i = 0; i < arguments.size(); i++)
 					{
@@ -209,25 +249,39 @@ std::unique_ptr<CxxTypeName> CxxTypeNameResolver::getName(const clang::Type* typ
 				std::vector<std::wstring>(),
 				std::move(specifierName));
 		}
-		case clang::Type::DependentTemplateSpecialization:
+		case clang::Type::Using:
 		{
-			const clang::DependentTemplateSpecializationType* dependentType =
-				clang::dyn_cast<clang::DependentTemplateSpecializationType>(type);
-			std::unique_ptr<CxxName> specifierName = CxxSpecifierNameResolver(this).getName(
-				dependentType->getQualifier());
-
-			std::vector<std::wstring> templateArguments;
-			CxxTemplateArgumentNameResolver resolver(this);
-			auto arguments = dependentType->template_arguments();
-			for (unsigned i = 0; i < arguments.size(); i++)
+			// "using Base::SomeType;" resolves to a concrete target as soon as it is written,
+			// so the type name can be resolved through the shadowed declaration like a typedef.
+			std::unique_ptr<CxxDeclName> declName = CxxDeclNameResolver(this).getName(
+				type->getAs<clang::UsingType>()->getDecl()->getTargetDecl());
+			if (declName)
 			{
-				templateArguments.push_back(resolver.getTemplateArgumentName(arguments[i]));
+				return std::make_unique<CxxTypeName>(
+					declName->getName(), std::vector<std::wstring>(), declName->getParent());
 			}
-
+			break;
+		}
+		case clang::Type::UnresolvedUsing:
+		{
+			// "using typename Base<T>::SomeType;" cannot be resolved to a concrete declaration
+			// until Base<T> is instantiated, so treat it like DependentName above.
+			const clang::UnresolvedUsingType* unresolvedUsingType =
+				clang::dyn_cast<clang::UnresolvedUsingType>(type);
+			std::unique_ptr<CxxName> specifierName = CxxSpecifierNameResolver(this).getName(
+				unresolvedUsingType->getQualifier());
 			return std::make_unique<CxxTypeName>(
-				utility::decodeFromUtf8(dependentType->getIdentifier()->getName().str()),
-				std::move(templateArguments),
+				utility::decodeFromUtf8(unresolvedUsingType->getDecl()->getName().str()),
+				std::vector<std::wstring>(),
 				std::move(specifierName));
+		}
+		// clang::Type::DependentTemplateSpecialization was removed in LLVM 22;
+		// DependentTemplateSpecializationType no longer exists.
+		case clang::Type::PredefinedSugar:
+		{
+			// size_t/ssize_t/ptrdiff_t are sugar for a builtin integer type (e.g. "unsigned
+			// long"); resolve through the desugared type like Typedef does.
+			return getName(type->getAs<clang::PredefinedSugarType>()->desugar());
 		}
 		case clang::Type::PackExpansion:
 		{

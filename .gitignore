@@ -45,6 +45,7 @@ build-*
 
 *.srctrldb
 *.srctrlbm
+*.idx
 *.suo
 *.vcxproj.user
 *.sqlite

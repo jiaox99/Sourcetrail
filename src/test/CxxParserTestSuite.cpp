@@ -12,9 +12,13 @@
 #	include "IndexerCommandCxx.h"
 #	include "IndexerStateInfo.h"
 #	include "ParserClientImpl.h"
+#	include "ResourcePaths.h"
 
 #	include "TestFileRegister.h"
 #	include "TestStorage.h"
+
+#	include "ConsoleLogger.h"
+#	include "LogManager.h"
 
 namespace
 {
@@ -2698,6 +2702,79 @@ TEST_CASE("cxx parser finds use of dependent template specialization type")
 		client->typeUses, L"B<bool>::type f -> B<bool>::type <14:10 14:13>"));
 }
 
+TEST_CASE("cxx parser handles use of unresolved using-declared type from dependent base class")
+{
+	std::shared_ptr<Logger> consoleLogger = std::make_shared<ConsoleLogger>();
+	LogManager::getInstance()->addLogger(consoleLogger);
+	LogManager::getInstance()->setLoggingEnabled(true);
+
+	// "using typename Base<T>::SomeType;" makes SomeType an UnresolvedUsingType until
+	// Derived<T> gets instantiated, because Base<T> is dependent on the template parameter.
+	std::shared_ptr<TestStorage> client = parseCode(
+		"template <typename T>\n"
+		"struct Base\n"
+		"{\n"
+		"	typedef T SomeType;\n"
+		"};\n"
+		"template <typename T>\n"
+		"struct Derived : Base<T>\n"
+		"{\n"
+		"	using typename Base<T>::SomeType;\n"
+		"	SomeType foo();\n"
+		"};\n");
+
+	LogManager::getInstance()->setLoggingEnabled(false);
+	LogManager::getInstance()->removeLogger(consoleLogger);
+
+	REQUIRE(utility::containsElement<std::wstring>(
+		client->methods,
+		L"public SomeType Derived<typename T>::foo() <10:2 <10:11 10:13> 10:15>"));
+}
+
+TEST_CASE("cxx parser handles use of using-declared type from non-dependent base class")
+{
+	std::shared_ptr<Logger> consoleLogger = std::make_shared<ConsoleLogger>();
+	LogManager::getInstance()->addLogger(consoleLogger);
+	LogManager::getInstance()->setLoggingEnabled(true);
+
+	// "using Base::SomeType;" makes SomeType a UsingType because Base is a concrete
+	// (non-dependent) type, so the target of the using-declaration is already known.
+	std::shared_ptr<TestStorage> client = parseCode(
+		"struct Base\n"
+		"{\n"
+		"	typedef int SomeType;\n"
+		"};\n"
+		"struct Derived : Base\n"
+		"{\n"
+		"	using Base::SomeType;\n"
+		"	SomeType foo();\n"
+		"};\n");
+
+	LogManager::getInstance()->setLoggingEnabled(false);
+	LogManager::getInstance()->removeLogger(consoleLogger);
+
+	REQUIRE(utility::containsElement<std::wstring>(
+		client->methods, L"public Base::SomeType Derived::foo() <8:2 <8:11 8:13> 8:15>"));
+}
+
+TEST_CASE("cxx parser handles use of predefined sugar type size_t")
+{
+	std::shared_ptr<Logger> consoleLogger = std::make_shared<ConsoleLogger>();
+	LogManager::getInstance()->addLogger(consoleLogger);
+	LogManager::getInstance()->setLoggingEnabled(true);
+
+	// LLVM 22 wraps size_t/ptrdiff_t as PredefinedSugarType so diagnostics can show the
+	// original name instead of the desugared builtin integer type (e.g. "unsigned long").
+	std::shared_ptr<TestStorage> client = parseCode("auto foo() { return sizeof(int); }\n");
+
+	LogManager::getInstance()->setLoggingEnabled(false);
+	LogManager::getInstance()->removeLogger(consoleLogger);
+
+	REQUIRE(utility::containsElement<std::wstring>(
+		client->functions,
+		L"unsigned long long foo() <1:1 <1:1 <1:6 1:8> 1:10> 1:34>"));
+}
+
 TEST_CASE(
 	"cxx parser creates single node for all possible parameter pack expansions of template "
 	"function")
@@ -3423,7 +3500,7 @@ TEST_CASE("record base class of implicit template class specialization")
 		"Vec2f v; \n");
 
 	REQUIRE(utility::containsElement<std::wstring>(
-		client->inheritances, L"Vector2<float> -> VectorBase<float, 2> <5:24 5:33>"));
+		client->inheritances, L"Vector2<float> -> VectorBase<float, 2U> <5:24 5:33>"));
 }
 
 TEST_CASE("cxx parser finds template class specialization with template argument")
@@ -4199,6 +4276,46 @@ TEST_CASE("cxx parser catches error in macro expansion")
 		client->errors, L"'this_path_does_not_exist.txt' file not found <2:10 2:10>"));
 }
 
+TEST_CASE("cxx parser does not report error for narrowing case value")
+{
+	std::shared_ptr<TestStorage> client = parseCode(
+		"void foo(unsigned int x) {\n"
+		"	switch (x) {\n"
+		"	case -1:\n"
+		"		break;\n"
+		"	}\n"
+		"}\n");
+
+	REQUIRE(client->errors.empty());
+}
+
+TEST_CASE("cxx parser does not report error for narrowing template argument")
+{
+	std::shared_ptr<TestStorage> client = parseCode(
+		"template <int N> struct A {};\n"
+		"A<4294967295u> a;\n");
+
+	REQUIRE(client->errors.empty());
+}
+
+TEST_CASE("cxx parser does not report error for dynamic exception specification")
+{
+	std::shared_ptr<TestStorage> client = parseCode(
+		"struct MyException {};\n"
+		"void foo() throw(MyException);\n");
+
+	REQUIRE(client->errors.empty());
+}
+
+TEST_CASE("cxx parser does not report error for register storage class specifier")
+{
+	std::shared_ptr<TestStorage> client = parseCode("void foo() {\n"
+													  "	register int x = 0;\n"
+													  "}\n");
+
+	REQUIRE(client->errors.empty());
+}
+
 TEST_CASE("cxx parser finds location of line comment")
 {
 	std::shared_ptr<TestStorage> client = parseCode("// this is a line comment\n");
@@ -4213,6 +4330,54 @@ TEST_CASE("cxx parser finds location of block comment")
 		"block comment */\n");
 
 	REQUIRE(utility::containsElement<std::wstring>(client->comments, L"comment <1:1 2:17>"));
+}
+
+TEST_CASE("cxx parser sees builtin macro __clang__ by default", "[undefmacro]")
+{
+	std::shared_ptr<TestStorage> client = parseCode(
+		"#ifdef __clang__\n"
+		"int clang_is_defined;\n"
+		"#else\n"
+		"int clang_is_not_defined;\n"
+		"#endif\n");
+
+	REQUIRE(utility::containsElement<std::wstring>(
+		client->globalVariables, L"int clang_is_defined <2:5 2:20>"));
+	REQUIRE_FALSE(utility::containsElement<std::wstring>(
+		client->globalVariables, L"int clang_is_not_defined <4:5 4:24>"));
+}
+
+TEST_CASE("cxx parser can undefine builtin macro __clang__ via -U compiler flag", "[undefmacro]")
+{
+	std::shared_ptr<TestStorage> client = parseCode(
+		"#ifdef __clang__\n"
+		"int clang_is_defined;\n"
+		"#else\n"
+		"int clang_is_not_defined;\n"
+		"#endif\n",
+		{L"-U__clang__"});
+
+	REQUIRE(utility::containsElement<std::wstring>(
+		client->globalVariables, L"int clang_is_not_defined <4:5 4:24>"));
+	REQUIRE_FALSE(utility::containsElement<std::wstring>(
+		client->globalVariables, L"int clang_is_defined <2:5 2:20>"));
+}
+
+TEST_CASE("indexer command cxx includes tool's own cxx header path by default")
+{
+	std::vector<std::wstring> flags = IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths({});
+
+	REQUIRE(utility::containsElement<std::wstring>(
+		flags, ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr()));
+}
+
+TEST_CASE("indexer command cxx can exclude tool's own cxx header path")
+{
+	std::vector<std::wstring> flags = IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths(
+		{}, false);
+
+	REQUIRE_FALSE(utility::containsElement<std::wstring>(
+		flags, ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr()));
 }
 
 void _test_TEST()

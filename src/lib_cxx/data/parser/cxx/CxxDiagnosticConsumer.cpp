@@ -11,12 +11,12 @@
 
 CxxDiagnosticConsumer::CxxDiagnosticConsumer(
 	clang::raw_ostream& os,
-	clang::DiagnosticOptions* diags,
+	clang::DiagnosticOptions& diagOptions,
 	std::shared_ptr<ParserClient> client,
 	std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache,
 	const FilePath& sourceFilePath,
 	bool useLogging)
-	: clang::TextDiagnosticPrinter(os, diags)
+	: clang::TextDiagnosticPrinter(os, diagOptions)
 	, m_client(client)
 	, m_canonicalFilePathCache(canonicalFilePathCache)
 	, m_sourceFilePath(sourceFilePath)
@@ -81,9 +81,9 @@ void CxxDiagnosticConsumer::HandleDiagnostic(
 			}
 
 			clang::FileID clangFileId = sourceManager.getFileID(loc);
-			const clang::FileEntry* fileEntry = sourceManager.getFileEntryForID(clangFileId);
+			clang::OptionalFileEntryRef fileEntry = sourceManager.getFileEntryRefForID(clangFileId);
 
-			if (fileEntry != nullptr)
+			if (fileEntry.has_value())
 			{
 				ParseLocation location = utility::getParseLocation(
 					loc, sourceManager, nullptr, m_canonicalFilePathCache);
@@ -94,10 +94,10 @@ void CxxDiagnosticConsumer::HandleDiagnostic(
 			}
 			else
 			{
-				fileEntry = sourceManager.getFileEntryForID(sourceManager.getMainFileID());
-				if (fileEntry != nullptr)
+				fileEntry = sourceManager.getFileEntryRefForID(sourceManager.getMainFileID());
+				if (fileEntry.has_value())
 				{
-					filePath = m_canonicalFilePathCache->getCanonicalFilePath(fileEntry);
+					filePath = m_canonicalFilePathCache->getCanonicalFilePath(*fileEntry);
 					fileId = m_client->recordFile(
 						filePath, false /*keeps the "indexed" state if the file already exists*/);
 					lineNumber = 1;

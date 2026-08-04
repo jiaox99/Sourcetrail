@@ -80,12 +80,12 @@ bool CxxAstVisitor::shouldVisitImplicitCode() const
 
 bool CxxAstVisitor::checkIgnoresTypeLoc(const clang::TypeLoc& tl) const
 {
+	// Note: DependentTemplateSpecializationTypeLoc was removed in LLVM 22.
 	if ((!tl.getAs<clang::TagTypeLoc>().isNull()) || (!tl.getAs<clang::TypedefTypeLoc>().isNull()) ||
 		(!tl.getAs<clang::TemplateTypeParmTypeLoc>().isNull()) ||
 		(!tl.getAs<clang::TemplateSpecializationTypeLoc>().isNull()) ||
 		(!tl.getAs<clang::InjectedClassNameTypeLoc>().isNull()) ||
 		(!tl.getAs<clang::DependentNameTypeLoc>().isNull()) ||
-		(!tl.getAs<clang::DependentTemplateSpecializationTypeLoc>().isNull()) ||
 		(!tl.getAs<clang::SubstTemplateTypeParmTypeLoc>().isNull()) ||
 		(!tl.getAs<clang::BuiltinTypeLoc>().isNull()) || (!tl.getAs<clang::AutoTypeLoc>().isNull()))
 	{
@@ -121,14 +121,14 @@ bool CxxAstVisitor::checkIgnoresTypeLoc(const clang::TypeLoc& tl) const
 	}
 
 #define DEF_TRAVERSE_CUSTOM_TYPE(__NAME_TYPE__, __PARAM_TYPE__, CODE_BEFORE, CODE_AFTER)           \
-	bool CxxAstVisitor::Traverse##__NAME_TYPE__(clang::__PARAM_TYPE__ v)                           \
+	bool CxxAstVisitor::Traverse##__NAME_TYPE__(clang::__PARAM_TYPE__ v, bool TraverseQualifier)   \
 	{                                                                                              \
 		FOREACH_COMPONENT(beginTraverse##__NAME_TYPE__(v));                                        \
 		bool ret = true;                                                                           \
 		{                                                                                          \
 			CODE_BEFORE;                                                                           \
 		}                                                                                          \
-		Base::Traverse##__NAME_TYPE__(v);                                                          \
+		Base::Traverse##__NAME_TYPE__(v, TraverseQualifier);                                       \
 		{                                                                                          \
 			CODE_AFTER;                                                                            \
 		}                                                                                          \
@@ -190,12 +190,20 @@ bool CxxAstVisitor::TraverseDecl(clang::Decl* decl)
 }
 
 // same as Base::TraverseQualifiedTypeLoc(..) but we need to make sure to call this.TraverseTypeLoc(..)
-bool CxxAstVisitor::TraverseQualifiedTypeLoc(clang::QualifiedTypeLoc tl)
+bool CxxAstVisitor::TraverseQualifiedTypeLoc(clang::QualifiedTypeLoc tl, bool traverseQualifier)
 {
-	return TraverseTypeLoc(tl.getUnqualifiedLoc());
+	return TraverseTypeLoc(tl.getUnqualifiedLoc(), /*traverseQualifier=*/true);
 }
 
-DEF_TRAVERSE_TYPE(TypeLoc, {}, {})
+// In LLVM 22, TraverseTypeLoc has a second bool parameter TraverseQualifier.
+bool CxxAstVisitor::TraverseTypeLoc(clang::TypeLoc v, bool traverseQualifier)
+{
+	FOREACH_COMPONENT(beginTraverseTypeLoc(v));
+	bool ret = true;
+	Base::TraverseTypeLoc(v, traverseQualifier);
+	FOREACH_COMPONENT(endTraverseTypeLoc(v));
+	return ret;
+}
 
 DEF_TRAVERSE_CUSTOM_TYPE(Type, QualType, {}, {})
 
@@ -270,7 +278,12 @@ bool CxxAstVisitor::TraverseTemplateTypeParmDecl(clang::TemplateTypeParmDecl* d)
 	if (d->hasDefaultArgument() && !d->defaultArgumentWasInherited())
 	{
 		FOREACH_COMPONENT(beginTraverseTemplateDefaultArgumentLoc());
-		TraverseTypeLoc(d->getDefaultArgumentInfo()->getTypeLoc());
+		// In LLVM 22, getDefaultArgument() returns const TemplateArgumentLoc&;
+		// use getTypeSourceInfo() to get the TypeLoc for type template parameters.
+		if (clang::TypeSourceInfo* TSI = d->getDefaultArgument().getTypeSourceInfo())
+		{
+			TraverseTypeLoc(TSI->getTypeLoc());
+		}
 		FOREACH_COMPONENT(endTraverseTemplateDefaultArgumentLoc());
 	}
 
@@ -318,10 +331,32 @@ bool CxxAstVisitor::TraverseNestedNameSpecifierLoc(clang::NestedNameSpecifierLoc
 	{
 		FOREACH_COMPONENT(beginTraverseNestedNameSpecifierLoc(loc));
 
-		// todo: call method of base class...
-		if (clang::NestedNameSpecifierLoc prefix = loc.getPrefix())
+		// In LLVM 22, NestedNameSpecifierLoc::getPrefix() was removed.
+		// Recurse into the prefix depending on the NNS kind.
+		switch (loc.getNestedNameSpecifier().getKind())
 		{
-			ret = TraverseNestedNameSpecifierLoc(prefix);
+		case clang::NestedNameSpecifier::Kind::Namespace:
+		{
+			clang::NestedNameSpecifierLoc prefix =
+				loc.castAsNamespaceAndPrefix().Prefix;
+			if (prefix)
+			{
+				ret = TraverseNestedNameSpecifierLoc(prefix);
+			}
+			break;
+		}
+		case clang::NestedNameSpecifier::Kind::Type:
+		{
+			clang::NestedNameSpecifierLoc prefix =
+				loc.castAsTypeLoc().getPrefix();
+			if (prefix)
+			{
+				ret = TraverseNestedNameSpecifierLoc(prefix);
+			}
+			break;
+		}
+		default:
+			break;
 		}
 
 		FOREACH_COMPONENT(endTraverseNestedNameSpecifierLoc(loc));
@@ -396,19 +431,15 @@ bool CxxAstVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplate
 
 	if (ReturnValue)
 	{
-		if (clang::TypeSourceInfo* TSI = D->getTypeAsWritten())
+		// In LLVM 22, getTypeAsWritten() was removed from ClassTemplateSpecializationDecl.
+		// Use getTemplateArgsAsWritten() to traverse explicitly written template arguments.
+		if (const clang::ASTTemplateArgumentListInfo* ArgsWritten = D->getTemplateArgsAsWritten())
 		{
-			clang::TypeLoc::TypeLocClass ccccc = TSI->getTypeLoc().getTypeLocClass();
-			const clang::TemplateSpecializationTypeLoc tstl =
-				TSI->getTypeLoc().getAs<clang::TemplateSpecializationTypeLoc>();
-			if (!tstl.isNull())
+			for (unsigned I = 0, E = ArgsWritten->getNumTemplateArgs(); I != E; ++I)
 			{
-				for (unsigned I = 0, E = tstl.getNumArgs(); I != E; ++I)
+				if (!TraverseTemplateArgumentLoc((*ArgsWritten)[I]))
 				{
-					if (!TraverseTemplateArgumentLoc(tstl.getArgLoc(I)))
-					{
-						ReturnValue = false;
-					}
+					ReturnValue = false;
 				}
 			}
 		}
@@ -419,6 +450,18 @@ bool CxxAstVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplate
 		if (!TraverseNestedNameSpecifierLoc(D->getQualifierLoc()))
 		{
 			ReturnValue = false;
+		}
+	}
+
+	if (ReturnValue && D->hasDefinition())
+	{
+		for (const auto& base: D->bases())
+		{
+			if (!traverseCXXBaseSpecifier(base))
+			{
+				ReturnValue = false;
+				break;
+			}
 		}
 	}
 

@@ -69,33 +69,29 @@ std::wstring IndexerCommandCxx::getCompilerFlagLanguageStandard(const std::wstri
 }
 
 std::vector<std::wstring> IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths(
-	const std::vector<FilePath>& systemHeaderSearchPaths)
+	const std::vector<FilePath>& systemHeaderSearchPaths, bool addToolCxxHeaderPath)
 {
 	std::vector<std::wstring> compilerFlags;
-	std::wstring pathTemp;
 	compilerFlags.reserve(systemHeaderSearchPaths.size() * 2);
 
 	for (const FilePath& path: systemHeaderSearchPaths)
 	{
-		pathTemp.clear();
-		pathTemp.append(L"-isystem");
-		pathTemp.append(path.wstr());
-		//compilerFlags.push_back(L"-isystem");
-		compilerFlags.push_back(pathTemp.c_str());
+		compilerFlags.push_back(L"-isystem");
+		compilerFlags.push_back(path.wstr());
 	}
 
+	if (addToolCxxHeaderPath)
+	{
 #ifdef _WIN32
-	// prepend clang system includes on windows
-	pathTemp.clear();
-	pathTemp.append(L"-isystem");
-	pathTemp.append(ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr());
-	compilerFlags = utility::concat({pathTemp}, compilerFlags);
-		//{L"-isystem", ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr()}, compilerFlags);
+		// prepend clang system includes on windows
+		compilerFlags = utility::concat(
+			{L"-isystem", ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr()}, compilerFlags);
 #else
-	// append otherwise
-	compilerFlags.push_back(L"-isystem");
-	compilerFlags.push_back(ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr());
+		// append otherwise
+		compilerFlags.push_back(L"-isystem");
+		compilerFlags.push_back(ResourcePaths::getCxxCompilerHeaderDirectoryPath().wstr());
 #endif
+	}
 
 	return compilerFlags;
 }

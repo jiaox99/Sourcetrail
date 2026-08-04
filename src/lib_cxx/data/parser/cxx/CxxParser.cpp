@@ -94,6 +94,23 @@ std::vector<std::string> CxxParser::getCommandlineArgumentsEssential(
 	// The option -w disables all warnings.
 	args.push_back("-w");
 
+	// Narrowing conversions (e.g. negative switch case values or template arguments assigned to an
+	// unsigned enum's underlying type) are DefaultError diagnostics in clang and are not affected by
+	// -w. MSVC accepts this code without error, so downgrade it here to avoid spurious indexing errors.
+	args.push_back("-Wno-c++11-narrowing");
+
+	// Dynamic exception specifications (e.g. "void f() throw(MyException)") are a DefaultError
+	// diagnostic in clang under -std=c++17 and later and are not affected by -w. Older codebases
+	// indexed with a newer language standard than they were written for still use this removed
+	// C++98/03 syntax; MSVC accepts it without error, so downgrade it here to avoid spurious errors.
+	args.push_back("-Wno-dynamic-exception-spec");
+
+	// The 'register' storage class specifier is a DefaultError diagnostic in clang under
+	// -std=c++17 and later and is not affected by -w. Older codebases indexed with a newer
+	// language standard than they were written for still use this removed C++98/03 keyword;
+	// MSVC accepts it without error, so downgrade it here to avoid spurious indexing errors.
+	args.push_back("-Wno-register");
+
 	// This option tells clang just to continue parsing no matter how manny errors have been thrown.
 	args.push_back("-ferror-limit=0");
 
@@ -227,7 +244,8 @@ std::shared_ptr<CxxDiagnosticConsumer> CxxParser::getDiagnostics(
 	std::shared_ptr<CanonicalFilePathCache> canonicalFilePathCache,
 	bool logErrors) const
 {
-	llvm::IntrusiveRefCntPtr<clang::DiagnosticOptions> options = new clang::DiagnosticOptions();
+	// DiagnosticOptions is a plain class in LLVM 17+; TextDiagnosticPrinter takes it by reference.
+	// m_diagOptions is a member of CxxParser and outlives the returned consumer.
 	return std::make_shared<CxxDiagnosticConsumer>(
-		llvm::errs(), &*options, m_client, canonicalFilePathCache, sourceFilePath, logErrors);
+		llvm::errs(), m_diagOptions, m_client, canonicalFilePathCache, sourceFilePath, logErrors);
 }

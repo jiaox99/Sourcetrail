@@ -1,5 +1,7 @@
 #include "Storage.h"
 
+#include <unordered_map>
+
 #include "logging.h"
 #include "tracing.h"
 
@@ -9,14 +11,14 @@ void Storage::inject(Storage* injected)
 {
 	std::lock_guard<std::mutex> lock(m_dataMutex);
 
-	std::map<Id, Id> injectedIdToOwnElementId;
-	std::map<Id, Id> injectedIdToOwnSourceLocationId;
+	std::unordered_map<Id, Id> injectedIdToOwnElementId;
+	std::unordered_map<Id, Id> injectedIdToOwnSourceLocationId;
 
-	TRACE();
+	TRACE("Storage::inject");
 	startInjection();
 
 	{
-		// TRACE("inject errors");
+		TRACE("inject errors");
 
 		for (const StorageError& error: injected->getErrors())
 		{
@@ -26,7 +28,7 @@ void Storage::inject(Storage* injected)
 	}
 
 	{
-		// TRACE("inject nodes");
+		TRACE("inject nodes");
 
 		const std::vector<StorageNode>& nodes = injected->getStorageNodes();
 
@@ -42,7 +44,7 @@ void Storage::inject(Storage* injected)
 	}
 
 	{
-		// TRACE("inject files");
+		TRACE("inject files");
 
 		for (const StorageFile& file: injected->getStorageFiles())
 		{
@@ -61,7 +63,7 @@ void Storage::inject(Storage* injected)
 	}
 
 	{
-		// TRACE("inject symbols");
+		TRACE("inject symbols");
 
 		std::vector<StorageSymbol> symbols = injected->getStorageSymbols();
 		for (size_t i = 0; i < symbols.size(); i++)
@@ -83,7 +85,7 @@ void Storage::inject(Storage* injected)
 	}
 
 	{
-		// TRACE("inject edges");
+		TRACE("inject edges");
 
 		std::vector<StorageEdge> edges = injected->getStorageEdges();
 		for (size_t i = 0; i < edges.size(); i++)
@@ -132,7 +134,7 @@ void Storage::inject(Storage* injected)
 	}
 
 	{
-		// TRACE("inject local symbols");
+		TRACE("inject local symbols");
 
 		const std::set<StorageLocalSymbol>& symbols = injected->getStorageLocalSymbols();
 		std::vector<Id> symbolIds = addLocalSymbols(symbols);
@@ -149,7 +151,7 @@ void Storage::inject(Storage* injected)
 	}
 
 	{
-		// TRACE("inject locations");
+		TRACE("inject locations");
 
 		const std::set<StorageSourceLocation>& oldLocations = injected->getStorageSourceLocations();
 		std::vector<StorageSourceLocation> locations;
@@ -191,7 +193,7 @@ void Storage::inject(Storage* injected)
 	}
 
 	{
-		// TRACE("inject occurrences");
+		TRACE("inject occurrences");
 
 		const std::set<StorageOccurrence>& oldOccurrences = injected->getStorageOccurrences();
 
@@ -233,7 +235,7 @@ void Storage::inject(Storage* injected)
 	}
 
 	{
-		// TRACE("inject element components");
+		TRACE("inject element components");
 
 		const std::set<StorageElementComponent>& oldComponents = injected->getElementComponents();
 		std::vector<StorageElementComponent> components;
@@ -252,7 +254,7 @@ void Storage::inject(Storage* injected)
 	}
 
 	{
-		// TRACE("inject accesses");
+		TRACE("inject accesses");
 
 		const std::set<StorageComponentAccess>& oldAccesses = injected->getComponentAccesses();
 		std::vector<StorageComponentAccess> accesses;

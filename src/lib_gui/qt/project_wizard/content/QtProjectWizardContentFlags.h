@@ -3,6 +3,7 @@
 
 #include "QtProjectWizardContent.h"
 
+class QCheckBox;
 class QtStringListBox;
 class SourceGroupSettingsWithCxxPathsAndFlags;
 
@@ -28,6 +29,7 @@ private:
 	const bool m_indicateAsAdditional;
 
 	QtStringListBox* m_list;
+	QCheckBox* m_useToolCxxHeaders;
 };
 
 #endif	  // QT_PROJECT_WIZARD_CONTENT_FLAGS_H

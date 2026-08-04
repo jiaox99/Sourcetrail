@@ -235,7 +235,8 @@ std::vector<std::shared_ptr<IndexerCommandCxx>> Project::getIndexerCommands(
 				{
 					compilerFlags = utility::concat(
 						IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths(
-							utility::convert<std::wstring, FilePath>(compiler->getDirectories())),
+							utility::convert<std::wstring, FilePath>(compiler->getDirectories()),
+							sourceGroupSettings->getUseToolCxxHeaders()),
 						compiler->getOptions());
 					break;
 				}
@@ -244,7 +245,8 @@ std::vector<std::shared_ptr<IndexerCommandCxx>> Project::getIndexerCommands(
 
 		utility::append(
 			compilerFlags,
-			IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths(systemHeaderSearchPaths));
+			IndexerCommandCxx::getCompilerFlagsForSystemHeaderSearchPaths(
+				systemHeaderSearchPaths, sourceGroupSettings->getUseToolCxxHeaders()));
 		utility::append(
 			compilerFlags,
 			IndexerCommandCxx::getCompilerFlagsForFrameworkSearchPaths(frameworkSearchPaths));

@@ -46,6 +46,16 @@ void SourceGroupSettingsWithCxxPathsAndFlags::setCompilerFlags(
 	m_compilerFlags = compilerFlags;
 }
 
+bool SourceGroupSettingsWithCxxPathsAndFlags::getUseToolCxxHeaders() const
+{
+	return m_useToolCxxHeaders;
+}
+
+void SourceGroupSettingsWithCxxPathsAndFlags::setUseToolCxxHeaders(bool useToolCxxHeaders)
+{
+	m_useToolCxxHeaders = useToolCxxHeaders;
+}
+
 bool SourceGroupSettingsWithCxxPathsAndFlags::equals(const SourceGroupSettingsBase* other) const
 {
 	const SourceGroupSettingsWithCxxPathsAndFlags* otherPtr =
@@ -54,7 +64,8 @@ bool SourceGroupSettingsWithCxxPathsAndFlags::equals(const SourceGroupSettingsBa
 	return (
 		otherPtr && utility::isPermutation(m_headerSearchPaths, otherPtr->m_headerSearchPaths) &&
 		utility::isPermutation(m_frameworkSearchPaths, otherPtr->m_frameworkSearchPaths) &&
-		utility::isPermutation(m_compilerFlags, otherPtr->m_compilerFlags));
+		utility::isPermutation(m_compilerFlags, otherPtr->m_compilerFlags) &&
+		m_useToolCxxHeaders == otherPtr->m_useToolCxxHeaders);
 }
 
 void SourceGroupSettingsWithCxxPathsAndFlags::load(const ConfigManager* config, const std::string& key)
@@ -65,6 +76,7 @@ void SourceGroupSettingsWithCxxPathsAndFlags::load(const ConfigManager* config, 
 		key + "/framework_search_paths/framework_search_path", std::vector<FilePath>()));
 	setCompilerFlags(config->getValuesOrDefaults(
 		key + "/compiler_flags/compiler_flag", std::vector<std::wstring>()));
+	setUseToolCxxHeaders(config->getValueOrDefault(key + "/use_tool_cxx_headers", true));
 }
 
 void SourceGroupSettingsWithCxxPathsAndFlags::save(ConfigManager* config, const std::string& key)
@@ -73,4 +85,5 @@ void SourceGroupSettingsWithCxxPathsAndFlags::save(ConfigManager* config, const 
 	config->setValues(
 		key + "/framework_search_paths/framework_search_path", getFrameworkSearchPaths());
 	config->setValues(key + "/compiler_flags/compiler_flag", getCompilerFlags());
+	config->setValue(key + "/use_tool_cxx_headers", getUseToolCxxHeaders());
 }

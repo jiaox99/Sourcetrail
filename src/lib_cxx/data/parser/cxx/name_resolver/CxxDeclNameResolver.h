@@ -2,11 +2,14 @@
 #define CXX_DECL_NAME_RESOLVER_H
 
 #include <clang/AST/DeclTemplate.h>
+#include <clang/AST/Expr.h>
+#include <clang/AST/ExprCXX.h>
 
 #include "CxxDeclName.h"
 #include "CxxNameResolver.h"
 #include "CxxTypeName.h"
 #include "CxxTypeNameResolver.h"
+#include "utilityString.h"
 
 class CanonicalFilePathCache;
 
@@ -89,6 +92,52 @@ std::vector<std::wstring> CxxDeclNameResolver::getTemplateParameterStringsOfPart
 					{
 						templateParameterNames.push_back(
 							getTemplateParameterString(parameterList->getParam(decl->getIndex())));
+					}
+					else
+					{
+						// TODO: fix case when arg depends on template parameter of outer template
+						// class, or depends on first template parameter.
+						templateParameterNames.push_back(
+							L"arg" + std::to_wstring(decl->getDepth()) + L"_" +
+							std::to_wstring(decl->getIndex()));
+					}
+				}
+				else
+				{
+					templateParameterNames.push_back(getTemplateArgumentName(templateArgument));
+				}
+			}
+			else if (argKind == clang::TemplateArgument::Expression)
+			{
+				// For a non-type template parameter used as-is in a partial specialization's
+				// argument list (e.g. "q" in "template <P* q> class A<&g_p, q>"), printing the
+				// expression can fall back to a "value-parameter-<depth>-<index>" placeholder
+				// (clang forces this when printing such expressions in canonical form) instead
+				// of the parameter's real name. Resolve the referenced NonTypeTemplateParmDecl
+				// directly, the same way TemplateTypeParmType/TemplateTemplateParmDecl are
+				// resolved above.
+				const clang::Expr* expr = templateArgument.getAsExpr()->IgnoreImpCasts();
+				if (const clang::UnaryOperator* unaryOp =
+						clang::dyn_cast<clang::UnaryOperator>(expr))
+				{
+					expr = unaryOp->getSubExpr()->IgnoreImpCasts();
+				}
+
+				const clang::NonTypeTemplateParmDecl* decl = nullptr;
+				if (const clang::DeclRefExpr* declRefExpr = clang::dyn_cast<clang::DeclRefExpr>(expr))
+				{
+					decl = clang::dyn_cast<clang::NonTypeTemplateParmDecl>(declRefExpr->getDecl());
+				}
+
+				if (decl)
+				{
+					if (decl->getDepth() == parameterList->getDepth())
+					{
+						// Unlike the Type/Template branches above, we want just the parameter's
+						// own name here (e.g. "q"), not its full "<type> <name>" declaration
+						// string, since this argument slot is itself a bare parameter reference.
+						templateParameterNames.push_back(utility::decodeFromUtf8(
+							parameterList->getParam(decl->getIndex())->getName().str()));
 					}
 					else
 					{

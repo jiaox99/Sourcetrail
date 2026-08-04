@@ -22,6 +22,9 @@ public:
 	std::vector<std::wstring> getCompilerFlags() const;
 	void setCompilerFlags(const std::vector<std::wstring>& compilerFlags);
 
+	bool getUseToolCxxHeaders() const;
+	void setUseToolCxxHeaders(bool useToolCxxHeaders);
+
 protected:
 	bool equals(const SourceGroupSettingsBase* other) const override;
 
@@ -32,6 +35,7 @@ private:
 	std::vector<FilePath> m_headerSearchPaths;
 	std::vector<FilePath> m_frameworkSearchPaths;
 	std::vector<std::wstring> m_compilerFlags;
+	bool m_useToolCxxHeaders = true;
 };
 
 #endif	  // SOURCE_GROUP_SETTINGS_WITH_CXX_PATHS_AND_FLAGS_H

@@ -1,5 +1,7 @@
 #include "CxxAstVisitorComponentContext.h"
 
+#include <clang/AST/DeclTemplate.h>
+
 #include "data/parser/cxx/CxxAstVisitor.h"
 
 CxxAstVisitorComponentContext::CxxAstVisitorComponentContext(CxxAstVisitor* astVisitor)
@@ -89,7 +91,14 @@ void CxxAstVisitorComponentContext::beginTraverseTypeLoc(const clang::TypeLoc& t
 			const clang::TemplateSpecializationTypeLoc& tstl =
 				tl.castAs<clang::TemplateSpecializationTypeLoc>();
 			const clang::TemplateSpecializationType* tst = tstl.getTypePtr();
-			if (tst && tst->getTemplateName().isDependent())
+			// Only skip recording a context for a template name that is itself a template
+			// template parameter (e.g. T<int> where T is a template template parameter). For a
+			// name like A<U>::template type<float>, the template name (type) is dependent only
+			// because its qualifier (A<U>) is dependent; it still refers to a real member and
+			// should get its own context entry.
+			if (tst &&
+				clang::isa_and_nonnull<clang::TemplateTemplateParmDecl>(
+					tst->getTemplateName().getAsTemplateDecl()))
 			{
 				recordContext = false;
 			}
